@@ -111,6 +111,28 @@ class YesterdayReviewResponse(BaseModel):
     count: int
 
 
+class ReviewItemDetail(BaseModel):
+    id: int
+    item_id: int
+    result: str
+    score: Optional[float]
+    item: LearningItemResponse
+    
+    class Config:
+        from_attributes = True
+
+
+class ReviewSessionDetail(BaseModel):
+    id: int
+    date: datetime
+    mode: str
+    score: Optional[float]
+    items: List[ReviewItemDetail]
+    
+    class Config:
+        from_attributes = True
+
+
 class TranslationRequest(BaseModel):
     text: str
     source_lang: Optional[str] = "English"

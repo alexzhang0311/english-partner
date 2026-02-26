@@ -13,8 +13,7 @@ Build a web app that helps users review what they learned yesterday using multip
 - Configurable AI provider (OpenAI/Anthropic)
 - Spaced repetition scheduling
 - Duplicate entry detection with user reminder
-- Basic analytics (accuracy, streaks, common mistakes)
-
+- Basic analytics (accuracy, streaks, common mistakes)- Review history with per-item results (correct/incorrect indicators)
 ### Out of scope (MVP)
 - Social features, classrooms
 - Payment/billing
@@ -105,10 +104,13 @@ MySQL is acceptable if required, but PostgreSQL provides easier long‑term flex
 ### Reviews
 - `GET /reviews/yesterday`
 - `POST /reviews/submit`
+- `GET /reviews/history` - Returns detailed history with per-item results
 
 ### Corrections
 - `POST /ai/correct-text`
 - `POST /ai/speaking-score`
+- `POST /ai/translate` - Translate text with AI (English to Chinese)
+- `POST /ai/classify` - Auto-detect content type (word/phrase/sentence)
 
 ## 10) Non‑Functional Requirements
 - Response time: < 2s for normal review operations
@@ -129,8 +131,10 @@ MySQL is acceptable if required, but PostgreSQL provides easier long‑term flex
 - Do not create a duplicate record; update `updated_at` or increment a `seen_count`.
 
 ## 13) Milestones
-1. Backend skeleton + DB schema
-2. Review generation + flashcards/cloze
-3. Writing correction
-4. Speaking MVP
-5. Analytics + polish
+1. Backend skeleton + DB schema ✓
+2. Review generation + flashcards/cloze ✓
+3. Writing correction ✓
+4. Speaking MVP ✓
+5. Analytics + polish ✓
+6. Review history with detailed results ✓
+7. AI auto-classification and translation ✓

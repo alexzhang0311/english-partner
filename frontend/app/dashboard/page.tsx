@@ -10,6 +10,7 @@ import { itemsAPI, reviewsAPI, aiAPI } from '@/lib/api';
 export default function DashboardPage() {
   const router = useRouter();
   const [reviewItems, setReviewItems] = useState<any[]>([]);
+  const [reviewHistory, setReviewHistory] = useState<any[]>([]);
   const [newItem, setNewItem] = useState({
     type: 'word',
     content: '',
@@ -27,6 +28,7 @@ export default function DashboardPage() {
       return;
     }
     loadReviewItems();
+    loadReviewHistory();
   }, []);
 
   const loadReviewItems = async () => {
@@ -37,6 +39,15 @@ export default function DashboardPage() {
       setError('Failed to load review items');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadReviewHistory = async () => {
+    try {
+      const response = await reviewsAPI.getHistory(5);
+      setReviewHistory(response.data);
+    } catch (err: any) {
+      console.error('Failed to load review history');
     }
   };
 
@@ -110,7 +121,7 @@ export default function DashboardPage() {
       </nav>
 
       <main className="container mx-auto px-4 py-8">
-        <div className="grid md:grid-cols-2 gap-6">
+        <div className="grid md:grid-cols-2 gap-6 mb-6">
           {/* Add New Item */}
           <Card>
             <CardHeader>
@@ -206,6 +217,69 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Review History */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Recent Review History</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {reviewHistory.length === 0 ? (
+              <p className="text-gray-500">No review history yet. Complete a review session to see your progress!</p>
+            ) : (
+              <div className="space-y-4">
+                {reviewHistory.map((session: any) => (
+                  <div key={session.id} className="border rounded-lg p-4">
+                    <div className="flex justify-between items-start mb-3">
+                      <div>
+                        <p className="font-semibold capitalize">{session.mode} Review</p>
+                        <p className="text-sm text-gray-500">
+                          {new Date(session.date).toLocaleString()}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-lg font-bold">
+                          {session.score?.toFixed(0)}%
+                        </p>
+                        <p className="text-sm text-gray-500">
+                          {session.items.filter((i: any) => i.result === 'correct').length}/{session.items.length} correct
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      {session.items.map((item: any) => (
+                        <div
+                          key={item.id}
+                          className={`flex items-center gap-2 p-2 rounded ${
+                            item.result === 'correct' 
+                              ? 'bg-green-50 border border-green-200' 
+                              : 'bg-red-50 border border-red-200'
+                          }`}
+                        >
+                          <span className="text-lg">
+                            {item.result === 'correct' ? '✓' : '✗'}
+                          </span>
+                          <div className="flex-1">
+                            <p className="font-medium text-sm">{item.item.content}</p>
+                            <p className="text-xs text-gray-600 capitalize">{item.item.type}</p>
+                          </div>
+                          {item.score !== null && (
+                            <span className={`text-sm font-semibold ${
+                              item.result === 'correct' ? 'text-green-700' : 'text-red-700'
+                            }`}>
+                              {item.score.toFixed(0)}
+                            </span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </main>
     </div>
   );

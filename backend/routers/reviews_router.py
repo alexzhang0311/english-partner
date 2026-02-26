@@ -6,7 +6,8 @@ from schemas import (
     YesterdayReviewResponse, 
     ReviewSessionCreate, 
     ReviewSessionResponse,
-    LearningItemResponse
+    LearningItemResponse,
+    ReviewSessionDetail
 )
 from models import User, LearningItem, ReviewSession, ReviewItem, SRSState, Mistake
 from dependencies import get_current_user
@@ -135,17 +136,38 @@ def submit_review(
     return review_session
 
 
-@router.get("/history", response_model=List[ReviewSessionResponse])
+@router.get("/history", response_model=List[ReviewSessionDetail])
 def get_review_history(
     limit: int = 10,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Get user's review history"""
+    """Get user's detailed review history with per-item results"""
     sessions = db.query(ReviewSession).filter(
         ReviewSession.user_id == current_user.id
     ).order_by(
         ReviewSession.date.desc()
     ).limit(limit).all()
     
-    return sessions
+    # Build detailed response with items
+    result = []
+    for session in sessions:
+        items_detail = []
+        for review_item in session.review_items:
+            items_detail.append({
+                "id": review_item.id,
+                "item_id": review_item.item_id,
+                "result": review_item.result,
+                "score": review_item.score,
+                "item": LearningItemResponse.model_validate(review_item.item)
+            })
+        
+        result.append({
+            "id": session.id,
+            "date": session.date,
+            "mode": session.mode,
+            "score": session.score,
+            "items": items_detail
+        })
+    
+    return result
