@@ -20,6 +20,7 @@ export default function DashboardPage() {
   const [error, setError] = useState('');
   const [classifying, setClassifying] = useState(false);
   const [typeExplanation, setTypeExplanation] = useState('');
+  const [expandedSessions, setExpandedSessions] = useState<Set<number>>(new Set());
 
   useEffect(() => {
     const token = localStorage.getItem('access_token');
@@ -46,6 +47,10 @@ export default function DashboardPage() {
     try {
       const response = await reviewsAPI.getHistory(5);
       setReviewHistory(response.data);
+      // Auto-expand the latest session
+      if (response.data.length > 0) {
+        setExpandedSessions(new Set([response.data[0].id]));
+      }
     } catch (err: any) {
       console.error('Failed to load review history');
     }
@@ -80,6 +85,18 @@ export default function DashboardPage() {
     }, 500);
     return () => clearTimeout(timer);
   }, [newItem.content, classifyContent]);
+
+  const toggleSession = (sessionId: number) => {
+    setExpandedSessions(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(sessionId)) {
+        newSet.delete(sessionId);
+      } else {
+        newSet.add(sessionId);
+      }
+      return newSet;
+    });
+  };
 
   const handleAddItem = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -227,55 +244,77 @@ export default function DashboardPage() {
             {reviewHistory.length === 0 ? (
               <p className="text-gray-500">No review history yet. Complete a review session to see your progress!</p>
             ) : (
-              <div className="space-y-4">
-                {reviewHistory.map((session: any) => (
-                  <div key={session.id} className="border rounded-lg p-4">
-                    <div className="flex justify-between items-start mb-3">
-                      <div>
-                        <p className="font-semibold capitalize">{session.mode} Review</p>
-                        <p className="text-sm text-gray-500">
-                          {new Date(session.date).toLocaleString()}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-lg font-bold">
-                          {session.score?.toFixed(0)}%
-                        </p>
-                        <p className="text-sm text-gray-500">
-                          {session.items.filter((i: any) => i.result === 'correct').length}/{session.items.length} correct
-                        </p>
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      {session.items.map((item: any) => (
-                        <div
-                          key={item.id}
-                          className={`flex items-center gap-2 p-2 rounded ${
-                            item.result === 'correct' 
-                              ? 'bg-green-50 border border-green-200' 
-                              : 'bg-red-50 border border-red-200'
-                          }`}
-                        >
-                          <span className="text-lg">
-                            {item.result === 'correct' ? '✓' : '✗'}
-                          </span>
+              <div className="space-y-3">
+                {reviewHistory.map((session: any, index: number) => {
+                  const isExpanded = expandedSessions.has(session.id);
+                  const isLatest = index === 0;
+                  
+                  return (
+                    <div key={session.id} className="border rounded-lg overflow-hidden">
+                      <div 
+                        className="p-4 bg-gray-50 cursor-pointer hover:bg-gray-100 transition-colors"
+                        onClick={() => toggleSession(session.id)}
+                      >
+                        <div className="flex justify-between items-start">
                           <div className="flex-1">
-                            <p className="font-medium text-sm">{item.item.content}</p>
-                            <p className="text-xs text-gray-600 capitalize">{item.item.type}</p>
+                            <div className="flex items-center gap-2">
+                              <p className="font-semibold capitalize">{session.mode} Review</p>
+                              {isLatest && (
+                                <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">Latest</span>
+                              )}
+                            </div>
+                            <p className="text-sm text-gray-500">
+                              {new Date(session.date).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' })}
+                            </p>
                           </div>
-                          {item.score !== null && (
-                            <span className={`text-sm font-semibold ${
-                              item.result === 'correct' ? 'text-green-700' : 'text-red-700'
-                            }`}>
-                              {item.score.toFixed(0)}
+                          <div className="text-right flex items-center gap-3">
+                            <div>
+                              <p className="text-lg font-bold">
+                                {session.score?.toFixed(0)}%
+                              </p>
+                              <p className="text-sm text-gray-500">
+                                {session.items.filter((i: any) => i.result === 'correct').length}/{session.items.length} correct
+                              </p>
+                            </div>
+                            <span className="text-gray-400">
+                              {isExpanded ? '▼' : '▶'}
                             </span>
-                          )}
+                          </div>
                         </div>
-                      ))}
+                      </div>
+                      
+                      {isExpanded && (
+                        <div className="p-4 space-y-2 bg-white">
+                          {session.items.map((item: any) => (
+                            <div
+                              key={item.id}
+                              className={`flex items-center gap-2 p-2 rounded ${
+                                item.result === 'correct' 
+                                  ? 'bg-green-50 border border-green-200' 
+                                  : 'bg-red-50 border border-red-200'
+                              }`}
+                            >
+                              <span className="text-lg">
+                                {item.result === 'correct' ? '✓' : '✗'}
+                              </span>
+                              <div className="flex-1">
+                                <p className="font-medium text-sm">{item.item.content}</p>
+                                <p className="text-xs text-gray-600 capitalize">{item.item.type}</p>
+                              </div>
+                              {item.score !== null && (
+                                <span className={`text-sm font-semibold ${
+                                  item.result === 'correct' ? 'text-green-700' : 'text-red-700'
+                                }`}>
+                                  {item.score.toFixed(0)}
+                                </span>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </CardContent>

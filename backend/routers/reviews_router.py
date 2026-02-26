@@ -11,7 +11,7 @@ from schemas import (
 )
 from models import User, LearningItem, ReviewSession, ReviewItem, SRSState, Mistake
 from dependencies import get_current_user
-from utils import get_yesterday_start, calculate_next_review, score_to_quality
+from utils import get_yesterday_start, calculate_next_review, score_to_quality, get_beijing_now
 from datetime import datetime, timedelta
 from typing import List
 
@@ -30,7 +30,7 @@ def get_yesterday_review(
     - Items with recent mistakes
     """
     yesterday = get_yesterday_start()
-    today = datetime.utcnow()
+    today = get_beijing_now()
     
     # Items created in last 24 hours
     new_items = db.query(LearningItem).filter(
@@ -74,7 +74,7 @@ def submit_review(
     review_session = ReviewSession(
         user_id=current_user.id,
         mode=session_data.mode,
-        date=datetime.utcnow()
+        date=get_beijing_now()
     )
     db.add(review_session)
     db.flush()  # Get session ID
@@ -120,8 +120,8 @@ def submit_review(
             srs_state.ease = new_ease
             srs_state.interval = new_interval
             srs_state.repetitions += 1
-            srs_state.last_review = datetime.utcnow()
-            srs_state.next_review = datetime.utcnow() + timedelta(days=new_interval)
+            srs_state.last_review = get_beijing_now()
+            srs_state.next_review = get_beijing_now() + timedelta(days=new_interval)
         
         # Add to total score
         if review_item_data.score:

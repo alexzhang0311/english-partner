@@ -2,6 +2,15 @@ import re
 from datetime import datetime, timedelta
 from typing import Optional
 from sqlalchemy.orm import Session
+import pytz
+
+# Beijing/Shanghai timezone
+BEIJING_TZ = pytz.timezone('Asia/Shanghai')
+
+
+def get_beijing_now() -> datetime:
+    """Get current time in Beijing timezone"""
+    return datetime.now(BEIJING_TZ)
 
 
 def normalize_content(content: str) -> str:
@@ -16,8 +25,9 @@ def normalize_content(content: str) -> str:
 
 
 def get_yesterday_start() -> datetime:
-    """Get the start of yesterday (24 hours ago)"""
-    return datetime.utcnow() - timedelta(hours=24)
+    """Get the start of yesterday (24 hours ago) in Beijing time"""
+    beijing_now = get_beijing_now()
+    return beijing_now - timedelta(days=1)
 
 
 def calculate_next_review(ease: float, interval: int, quality: int) -> tuple[float, int]:

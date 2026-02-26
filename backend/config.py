@@ -1,6 +1,9 @@
 from pydantic_settings import BaseSettings
 from typing import Literal
+import pytz
 
+# Beijing/Shanghai timezone
+BEIJING_TZ = pytz.timezone('Asia/Shanghai')
 
 class Settings(BaseSettings):
     # Database

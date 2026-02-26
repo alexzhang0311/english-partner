@@ -4,7 +4,7 @@ from database import get_db
 from schemas import LearningItemCreate, LearningItemResponse
 from models import User, LearningItem, SRSState
 from dependencies import get_current_user
-from utils import normalize_content
+from utils import normalize_content, get_beijing_now
 from config import settings
 from typing import List
 from datetime import datetime
@@ -31,7 +31,7 @@ def create_learning_item(
     if existing:
         # Update seen count and timestamp
         existing.seen_count += 1
-        existing.updated_at = datetime.utcnow()
+        existing.updated_at = get_beijing_now()
         db.commit()
         db.refresh(existing)
         

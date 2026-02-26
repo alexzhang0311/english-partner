@@ -120,6 +120,7 @@ MySQL is acceptable if required, but PostgreSQL provides easier long‑term flex
 - AI calls: async with retry/backoff
 - Logging: structured logs + request IDs
 - Security: store keys in env, never client-side
+- Timezone: All timestamps use Asia/Shanghai (Beijing) timezone
 
 ## 11) Memory Science Requirements
 - Use Ebbinghaus forgetting curve principles for review intervals.
