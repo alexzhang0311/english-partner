@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, UploadFile, File, HTTPException, status
 from sqlalchemy.orm import Session
 from database import get_db
-from schemas import TextCorrectionRequest, TextCorrectionResponse, SpeakingScoreResponse, TranslationRequest, TranslationResponse
+from schemas import TextCorrectionRequest, TextCorrectionResponse, SpeakingScoreResponse, TranslationRequest, TranslationResponse, ClassifyTextRequest, ClassifyTextResponse
 from models import User, Mistake
 from dependencies import get_current_user
 from ai.factory import AIProviderFactory
@@ -167,4 +167,36 @@ async def translate_text(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Translation failed: {str(e)}"
+        )
+
+
+@router.post("/classify", response_model=ClassifyTextResponse)
+async def classify_text(
+    request: ClassifyTextRequest,
+    current_user: User = Depends(get_current_user)
+):
+    """Classify text type (word, phrase, sentence) using AI"""
+    text = request.text.strip()
+    
+    # Simple rule-based classification
+    word_count = len(text.split())
+    has_punctuation = any(p in text for p in '.!?')
+    
+    if word_count == 1:
+        return ClassifyTextResponse(
+            type="word",
+            confidence=0.95,
+            explanation="Single word detected"
+        )
+    elif word_count <= 5 and not has_punctuation:
+        return ClassifyTextResponse(
+            type="phrase",
+            confidence=0.85,
+            explanation="Short phrase detected (2-5 words, no punctuation)"
+        )
+    else:
+        return ClassifyTextResponse(
+            type="sentence",
+            confidence=0.9,
+            explanation="Complete sentence detected"
         )

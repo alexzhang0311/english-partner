@@ -120,3 +120,13 @@ class TranslationRequest(BaseModel):
 class TranslationResponse(BaseModel):
     translation: str
     explanation: Optional[str] = None
+
+
+class ClassifyTextRequest(BaseModel):
+    text: str
+
+
+class ClassifyTextResponse(BaseModel):
+    type: str  # word, phrase, sentence, paragraph
+    confidence: float
+    explanation: str

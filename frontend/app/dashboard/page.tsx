@@ -1,11 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { itemsAPI, reviewsAPI } from '@/lib/api';
+import { itemsAPI, reviewsAPI, aiAPI } from '@/lib/api';
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -17,6 +17,8 @@ export default function DashboardPage() {
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [classifying, setClassifying] = useState(false);
+  const [typeExplanation, setTypeExplanation] = useState('');
 
   useEffect(() => {
     const token = localStorage.getItem('access_token');
@@ -37,6 +39,36 @@ export default function DashboardPage() {
       setLoading(false);
     }
   };
+
+  const classifyContent = useCallback(
+    async (text: string) => {
+      if (!text.trim()) {
+        setTypeExplanation('');
+        return;
+      }
+      
+      setClassifying(true);
+      try {
+        const response = await aiAPI.classify({ text });
+        setNewItem(prev => ({ ...prev, type: response.data.type }));
+        setTypeExplanation(response.data.explanation);
+      } catch (err) {
+        console.error('Classification failed');
+      } finally {
+        setClassifying(false);
+      }
+    },
+    []
+  );
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (newItem.content) {
+        classifyContent(newItem.content);
+      }
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [newItem.content, classifyContent]);
 
   const handleAddItem = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -93,18 +125,18 @@ export default function DashboardPage() {
                 )}
 
                 <div>
-                  <label className="block text-sm font-medium mb-2">Type</label>
-                  <select
-                    value={newItem.type}
-                    onChange={(e) =>
-                      setNewItem({ ...newItem, type: e.target.value })
-                    }
-                    className="w-full h-10 rounded-md border border-input bg-background px-3 py-2"
-                  >
-                    <option value="word">Word</option>
-                    <option value="phrase">Phrase</option>
-                    <option value="sentence">Sentence</option>
-                  </select>
+                  <label className="block text-sm font-medium mb-2">
+                    Type {classifying && <span className="text-xs text-gray-500">(detecting...)</span>}
+                  </label>
+                  <div className="w-full h-10 rounded-md border border-input bg-gray-50 px-3 py-2 flex items-center justify-between">
+                    <span className="capitalize font-medium">{newItem.type}</span>
+                    {typeExplanation && (
+                      <span className="text-xs text-gray-500">✓ AI detected</span>
+                    )}
+                  </div>
+                  {typeExplanation && (
+                    <p className="text-xs text-gray-600 mt-1">{typeExplanation}</p>
+                  )}
                 </div>
 
                 <div>
