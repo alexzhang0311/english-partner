@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, UploadFile, File, HTTPException, status
 from sqlalchemy.orm import Session
 from database import get_db
-from schemas import TextCorrectionRequest, TextCorrectionResponse, SpeakingScoreResponse, TranslationRequest, TranslationResponse, ClassifyTextRequest, ClassifyTextResponse
+from schemas import TextCorrectionRequest, TextCorrectionResponse, SpeakingScoreResponse, TranslationRequest, TranslationResponse, ClassifyTextRequest, ClassifyTextResponse, SpeakingScoreTextRequest, SpeakingScoreTextResponse
 from models import User, Mistake
 from dependencies import get_current_user
 from ai.factory import AIProviderFactory
@@ -200,3 +200,76 @@ async def classify_text(
             confidence=0.9,
             explanation="Complete sentence detected"
         )
+
+
+@router.post("/speaking-score-text", response_model=SpeakingScoreTextResponse)
+async def score_speaking_text(
+    request: SpeakingScoreTextRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Score speaking by comparing transcript text to target (no audio processing)"""
+    from difflib import SequenceMatcher
+    
+    transcript = request.transcript.strip()
+    target = request.target_text.strip()
+    
+    # Calculate similarity
+    similarity = SequenceMatcher(None, transcript.lower(), target.lower()).ratio()
+    
+    # Calculate score (0-100)
+    base_score = similarity * 100
+    
+    # Find differences
+    corrections = []
+    pronunciation_issues = []
+    
+    if similarity < 1.0:
+        transcript_words = transcript.lower().split()
+        target_words = target.lower().split()
+        
+        # Simple word-by-word comparison
+        if len(transcript_words) != len(target_words):
+            pronunciation_issues.append(f"Word count mismatch: said {len(transcript_words)} words, expected {len(target_words)}")
+        
+        # Find missing or wrong words
+        target_set = set(target_words)
+        transcript_set = set(transcript_words)
+        
+        missing = target_set - transcript_set
+        if missing:
+            pronunciation_issues.append(f"Missing words: {', '.join(missing)}")
+        
+        extra = transcript_set - target_set
+        if extra:
+            pronunciation_issues.append(f"Extra/wrong words: {', '.join(extra)}")
+        
+        # Add correction if significantly different
+        if similarity < 0.8:
+            corrections.append({
+                "original": transcript,
+                "corrected": target,
+                "explanation": "Please practice pronouncing this sentence more clearly",
+                "category": "pronunciation"
+            })
+    
+    # Store mistakes if item_id provided
+    if request.item_id and corrections:
+        for correction in corrections:
+            mistake = Mistake(
+                item_id=request.item_id,
+                original=correction["original"],
+                corrected=correction["corrected"],
+                explanation=correction["explanation"],
+                category=correction["category"]
+            )
+            db.add(mistake)
+        db.commit()
+    
+    return SpeakingScoreTextResponse(
+        transcript=transcript,
+        corrections=corrections,
+        score=base_score,
+        pronunciation_issues=pronunciation_issues,
+        similarity=similarity
+    )

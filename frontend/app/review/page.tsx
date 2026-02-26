@@ -23,12 +23,15 @@ export default function ReviewPage() {
   const [aiPronunciationIssues, setAiPronunciationIssues] = useState<string[]>([]);
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   const [isRecording, setIsRecording] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+  const [recognizedText, setRecognizedText] = useState('');
   const [flashcardPair, setFlashcardPair] = useState<{ shown: string; correct: string; isCorrectPair: boolean } | null>(null);
   const [showFlashcardCorrection, setShowFlashcardCorrection] = useState(false);
   const [translationCache, setTranslationCache] = useState<Record<number, string>>({});
   const [loadingTranslation, setLoadingTranslation] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
+  const recognitionRef = useRef<any>(null);
 
   useEffect(() => {
     loadReviewItems();
@@ -70,8 +73,13 @@ export default function ReviewPage() {
     setAiPronunciationIssues([]);
     setAudioBlob(null);
     setIsRecording(false);
+    setIsListening(false);
+    setRecognizedText('');
     setShowFlashcardCorrection(false);
     audioChunksRef.current = [];
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+    }
   };
 
   const normalizeText = (text: string) =>
@@ -261,54 +269,82 @@ export default function ReviewPage() {
     window.speechSynthesis.speak(utterance);
   };
 
-  const handleStartRecording = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const recorder = new MediaRecorder(stream);
-      mediaRecorderRef.current = recorder;
-      audioChunksRef.current = [];
-
-      recorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          audioChunksRef.current.push(event.data);
-        }
-      };
-
-      recorder.onstop = () => {
-        const blob = new Blob(audioChunksRef.current, { type: 'audio/wav' });
-        setAudioBlob(blob);
-        stream.getTracks().forEach((track) => track.stop());
-      };
-
-      recorder.start();
-      setIsRecording(true);
-    } catch (err) {
-      setFeedback('Microphone access denied.');
+  const handleStartSpeechRecognition = () => {
+    if (typeof window === 'undefined') return;
+    
+    // Check browser support
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      setFeedback('Speech recognition not supported in this browser. Please use Chrome, Edge, or Safari.');
+      return;
     }
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'en-US';
+    recognition.continuous = false;
+    recognition.interimResults = false;
+
+    recognition.onstart = () => {
+      setIsListening(true);
+      setRecognizedText('');
+      setFeedback('Listening... Please speak now.');
+    };
+
+    recognition.onresult = (event: any) => {
+      const transcript = event.results[0][0].transcript;
+      setRecognizedText(transcript);
+      setFeedback('Speech captured! Click "Score Speaking" to evaluate.');
+    };
+
+    recognition.onerror = (event: any) => {
+      setFeedback(`Error: ${event.error}. Please try again.`);
+      setIsListening(false);
+    };
+
+    recognition.onend = () => {
+      setIsListening(false);
+    };
+
+    recognitionRef.current = recognition;
+    recognition.start();
+  };
+
+  const handleStopSpeechRecognition = () => {
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+      setIsListening(false);
+    }
+  };
+
+  const handleStartRecording = async () => {
+    // Deprecated - kept for backward compatibility
+    handleStartSpeechRecognition();
   };
 
   const handleStopRecording = () => {
-    if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop();
-      setIsRecording(false);
-    }
+    // Deprecated - kept for backward compatibility
+    handleStopSpeechRecognition();
   };
 
   const handleSpeakingScore = async () => {
-    if (!audioBlob) return;
+    if (!recognizedText.trim()) {
+      setFeedback('Please speak first before scoring.');
+      return;
+    }
+    
     setChecking(true);
     setFeedback('');
     try {
-      const response = await aiAPI.speakingScore(
-        audioBlob,
-        items[currentIndex]?.content || '',
-        items[currentIndex]?.id
-      );
+      const response = await aiAPI.speakingScoreText({
+        transcript: recognizedText,
+        target_text: items[currentIndex]?.content || '',
+        item_id: items[currentIndex]?.id
+      });
       setAiTranscript(response.data.transcript || '');
       setAiCorrections(response.data.corrections || []);
       setAiScore(response.data.score ?? null);
       setAiPronunciationIssues(response.data.pronunciation_issues || []);
-      setFeedback('Speaking score ready.');
+      setFeedback(`Similarity: ${(response.data.similarity * 100).toFixed(0)}% - Speaking score ready.`);
     } catch (err) {
       setFeedback('Speaking score failed.');
     } finally {
@@ -446,19 +482,30 @@ export default function ReviewPage() {
                   <div className="mb-6">
                     <p className="text-sm text-gray-500 mb-3">Read aloud:</p>
                     <p className="text-xl font-semibold mb-4">{currentItem.content}</p>
-                    <div className="flex justify-center gap-3">
-                      {!isRecording ? (
-                        <Button onClick={handleStartRecording}>Start Recording</Button>
-                      ) : (
-                        <Button variant="destructive" onClick={handleStopRecording}>Stop Recording</Button>
-                      )}
-                      <Button
-                        variant="outline"
-                        onClick={handleSpeakingScore}
-                        disabled={!audioBlob || checking}
-                      >
-                        {checking ? 'Scoring...' : 'Score Speaking'}
-                      </Button>
+                    {recognizedText && (
+                      <div className="mb-3 p-3 bg-blue-50 rounded-md">
+                        <p className="text-sm text-gray-600">You said:</p>
+                        <p className="font-medium">{recognizedText}</p>
+                      </div>
+                    )}
+                    <div className="flex flex-col gap-3">
+                      <div className="flex justify-center gap-3">
+                        {!isListening ? (
+                          <Button onClick={handleStartSpeechRecognition}>Start Speaking</Button>
+                        ) : (
+                          <Button variant="destructive" onClick={handleStopSpeechRecognition}>Stop</Button>
+                        )}
+                        <Button
+                          variant="outline"
+                          onClick={handleSpeakingScore}
+                          disabled={!recognizedText || checking}
+                        >
+                          {checking ? 'Scoring...' : 'Score Speaking'}
+                        </Button>
+                      </div>
+                      <p className="text-xs text-center text-gray-500">
+                        💡 Uses browser speech recognition (Chrome, Edge, Safari)
+                      </p>
                     </div>
                   </div>
                 )}

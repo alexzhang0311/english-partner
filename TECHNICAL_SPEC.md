@@ -73,15 +73,17 @@ MySQL is acceptable if required, but PostgreSQL provides easier long‑term flex
 
 ## 7) Speaking Feature (MVP)
 ### Flow
-1. User records audio in browser
-2. Frontend uploads audio to backend
-3. Backend sends audio to ASR (speech‑to‑text)
-4. Compare transcript to target sentence
-5. Return score + corrections
+1. User speaks into browser microphone
+2. Browser's Web Speech API transcribes speech to text
+3. Frontend sends transcript to backend
+4. Backend compares transcript to target sentence
+5. Return score + corrections based on similarity
 
-### Required SaaS
-- ASR only (OpenAI Whisper or similar)
-- TTS is optional (only needed to read examples aloud)
+### Technology
+- **Browser Speech Recognition API** (Chrome, Edge, Safari)
+- No external ASR service required (no OpenAI Whisper dependency)
+- Text-based similarity scoring with difflib
+- Works with any AI provider backend (OpenAI/Anthropic/Aliyun)
 
 ## 8) Data Model (MVP)
 ### Tables
@@ -108,7 +110,8 @@ MySQL is acceptable if required, but PostgreSQL provides easier long‑term flex
 
 ### Corrections
 - `POST /ai/correct-text`
-- `POST /ai/speaking-score`
+- `POST /ai/speaking-score` - Legacy audio-based (requires Whisper)
+- `POST /ai/speaking-score-text` - Text-based scoring (no ASR required)
 - `POST /ai/translate` - Translate text with AI (English to Chinese)
 - `POST /ai/classify` - Auto-detect content type (word/phrase/sentence)
 

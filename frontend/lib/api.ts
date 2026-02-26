@@ -94,4 +94,7 @@ export const aiAPI = {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
   },
+
+  speakingScoreText: (data: { transcript: string; target_text: string; item_id?: number }) =>
+    api.post('/ai/speaking-score-text', data),
 };

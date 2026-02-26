@@ -106,6 +106,20 @@ class SpeakingScoreResponse(BaseModel):
     pronunciation_issues: List[str]
 
 
+class SpeakingScoreTextRequest(BaseModel):
+    transcript: str
+    target_text: str
+    item_id: Optional[int] = None
+
+
+class SpeakingScoreTextResponse(BaseModel):
+    transcript: str
+    corrections: List[dict]
+    score: float
+    pronunciation_issues: List[str]
+    similarity: float
+
+
 class YesterdayReviewResponse(BaseModel):
     items: List[LearningItemResponse]
     count: int
