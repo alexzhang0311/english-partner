@@ -76,6 +76,9 @@ export const aiAPI = {
   correctText: (data: { text: string; context?: string }) =>
     api.post('/ai/correct-text', data),
   
+  translate: (data: { text: string; source_lang?: string; target_lang?: string }) =>
+    api.post('/ai/translate', data),
+  
   speakingScore: (audioBlob: Blob, targetText: string, itemId?: number) => {
     const formData = new FormData();
     formData.append('audio', audioBlob, 'recording.wav');

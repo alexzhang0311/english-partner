@@ -109,3 +109,14 @@ class SpeakingScoreResponse(BaseModel):
 class YesterdayReviewResponse(BaseModel):
     items: List[LearningItemResponse]
     count: int
+
+
+class TranslationRequest(BaseModel):
+    text: str
+    source_lang: Optional[str] = "English"
+    target_lang: Optional[str] = "Chinese"
+
+
+class TranslationResponse(BaseModel):
+    translation: str
+    explanation: Optional[str] = None

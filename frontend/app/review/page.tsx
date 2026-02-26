@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { reviewsAPI } from '@/lib/api';
+import { aiAPI, reviewsAPI } from '@/lib/api';
 
 export default function ReviewPage() {
   const router = useRouter();
@@ -12,12 +12,42 @@ export default function ReviewPage() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showAnswer, setShowAnswer] = useState(false);
   const [results, setResults] = useState<any[]>([]);
-  const [mode] = useState('flashcard');
+  const [mode, setMode] = useState<'flashcard' | 'cloze' | 'listening' | 'speaking' | 'writing'>('flashcard');
   const [loading, setLoading] = useState(true);
+  const [inputText, setInputText] = useState('');
+  const [checking, setChecking] = useState(false);
+  const [feedback, setFeedback] = useState<string>('');
+  const [aiScore, setAiScore] = useState<number | null>(null);
+  const [aiCorrections, setAiCorrections] = useState<any[]>([]);
+  const [aiTranscript, setAiTranscript] = useState<string>('');
+  const [aiPronunciationIssues, setAiPronunciationIssues] = useState<string[]>([]);
+  const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
+  const [isRecording, setIsRecording] = useState(false);
+  const [flashcardPair, setFlashcardPair] = useState<{ shown: string; correct: string; isCorrectPair: boolean } | null>(null);
+  const [showFlashcardCorrection, setShowFlashcardCorrection] = useState(false);
+  const [translationCache, setTranslationCache] = useState<Record<number, string>>({});
+  const [loadingTranslation, setLoadingTranslation] = useState(false);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
 
   useEffect(() => {
     loadReviewItems();
   }, []);
+
+  useEffect(() => {
+    resetPerItemState();
+  }, [currentIndex, mode]);
+
+  useEffect(() => {
+    if (mode === 'flashcard' && items.length > 0 && items[currentIndex]) {
+      buildAndSetFlashcardPair();
+    }
+  }, [mode, currentIndex, items, translationCache]);
+
+  const buildAndSetFlashcardPair = async () => {
+    const pair = await buildFlashcardPair();
+    setFlashcardPair(pair);
+  };
 
   const loadReviewItems = async () => {
     try {
@@ -28,6 +58,94 @@ export default function ReviewPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const resetPerItemState = () => {
+    setShowAnswer(false);
+    setInputText('');
+    setFeedback('');
+    setAiScore(null);
+    setAiCorrections([]);
+    setAiTranscript('');
+    setAiPronunciationIssues([]);
+    setAudioBlob(null);
+    setIsRecording(false);
+    setShowFlashcardCorrection(false);
+    audioChunksRef.current = [];
+  };
+
+  const normalizeText = (text: string) =>
+    text.toLowerCase().trim().replace(/\s+/g, ' ');
+
+  const clozeData = useMemo(() => {
+    const currentItem = items[currentIndex];
+    if (!currentItem?.content) return { prompt: '', answer: '' };
+    const words = currentItem.content.split(' ');
+    const indexToHide = words.findIndex((w: string) => w.length > 3);
+    const targetIndex = indexToHide >= 0 ? indexToHide : 0;
+    const answer = words[targetIndex] || '';
+    const prompt = words
+      .map((w: string, i: number) => (i === targetIndex ? '_____' : w))
+      .join(' ');
+    return { prompt, answer };
+  }, [items, currentIndex]);
+
+  const buildFlashcardPair = async () => {
+    const currentItem = items[currentIndex];
+    if (!currentItem) return null;
+    
+    let correctTranslation = currentItem.example || '';
+    
+    // If no translation exists, generate one with AI
+    if (!correctTranslation) {
+      if (translationCache[currentItem.id]) {
+        correctTranslation = translationCache[currentItem.id];
+      } else {
+        setLoadingTranslation(true);
+        try {
+          const response = await aiAPI.translate({
+            text: currentItem.content,
+            source_lang: 'English',
+            target_lang: 'Chinese',
+          });
+          correctTranslation = response.data.translation;
+          setTranslationCache(prev => ({ ...prev, [currentItem.id]: correctTranslation }));
+        } catch (err) {
+          correctTranslation = '(Translation unavailable)';
+        } finally {
+          setLoadingTranslation(false);
+        }
+      }
+    }
+    
+    if (!correctTranslation || correctTranslation === '(Translation unavailable)') {
+      return { shown: correctTranslation, correct: correctTranslation, isCorrectPair: true };
+    }
+
+    const shouldBeCorrect = Math.random() > 0.5;
+    if (shouldBeCorrect) {
+      return { shown: correctTranslation, correct: correctTranslation, isCorrectPair: true };
+    }
+
+    // Get incorrect translation from other items
+    const otherItemsWithTranslations = await Promise.all(
+      items
+        .filter((item) => item.id !== currentItem.id)
+        .map(async (item) => {
+          if (item.example) return item.example;
+          if (translationCache[item.id]) return translationCache[item.id];
+          return null;
+        })
+    );
+    
+    const validOthers = otherItemsWithTranslations.filter(t => t && t !== '(Translation unavailable)');
+    
+    if (validOthers.length === 0) {
+      return { shown: correctTranslation, correct: correctTranslation, isCorrectPair: true };
+    }
+    
+    const randomOther = validOthers[Math.floor(Math.random() * validOthers.length)];
+    return { shown: randomOther, correct: correctTranslation, isCorrectPair: false };
   };
 
   const handleAnswer = (result: 'correct' | 'incorrect') => {
@@ -51,6 +169,150 @@ export default function ReviewPage() {
         ...results,
         { item_id: items[currentIndex].id, result, score },
       ]);
+    }
+  };
+
+  const handleFlashcardAnswer = (userSaysCorrect: boolean) => {
+    if (!flashcardPair) return;
+    const isUserCorrect = userSaysCorrect === flashcardPair.isCorrectPair;
+    const result = isUserCorrect ? 'correct' : 'incorrect';
+    const score = isUserCorrect ? 100 : 0;
+
+    setResults([
+      ...results,
+      { item_id: items[currentIndex].id, result, score },
+    ]);
+
+    if (!isUserCorrect) {
+      setShowFlashcardCorrection(true);
+    }
+
+    if (isUserCorrect) {
+      if (currentIndex < items.length - 1) {
+        setCurrentIndex(currentIndex + 1);
+      } else {
+        finishReview([
+          ...results,
+          { item_id: items[currentIndex].id, result, score },
+        ]);
+      }
+    }
+  };
+
+  const handleContinueAfterCorrection = () => {
+    if (currentIndex < items.length - 1) {
+      setCurrentIndex(currentIndex + 1);
+    } else {
+      finishReview([
+        ...results,
+      ]);
+    }
+  };
+
+  const handleCheckText = (target: string) => {
+    const isCorrect = normalizeText(inputText) === normalizeText(target);
+    setFeedback(isCorrect ? 'Correct!' : 'Not quite.');
+    setShowAnswer(true);
+    const score = isCorrect ? 100 : 0;
+    setResults([
+      ...results,
+      { item_id: items[currentIndex].id, result: isCorrect ? 'correct' : 'incorrect', score },
+    ]);
+
+    if (currentIndex < items.length - 1) {
+      setCurrentIndex(currentIndex + 1);
+    } else {
+      finishReview([
+        ...results,
+        { item_id: items[currentIndex].id, result: isCorrect ? 'correct' : 'incorrect', score },
+      ]);
+    }
+  };
+
+  const handleWritingCheck = async () => {
+    if (!inputText.trim()) return;
+    setChecking(true);
+    setFeedback('');
+    try {
+      const response = await aiAPI.correctText({
+        text: inputText,
+        context: items[currentIndex]?.content || '',
+      });
+      setAiCorrections(response.data.corrections || []);
+      setAiScore(response.data.score ?? null);
+      setFeedback('AI feedback ready.');
+    } catch (err) {
+      setFeedback('AI correction failed.');
+    } finally {
+      setChecking(false);
+    }
+  };
+
+  const handleSaveWritingResult = () => {
+    const score = aiScore ?? 0;
+    const result = score >= 70 ? 'correct' : 'incorrect';
+    handleAnswer(result);
+  };
+
+  const handlePlayAudio = () => {
+    if (typeof window === 'undefined') return;
+    const utterance = new SpeechSynthesisUtterance(items[currentIndex]?.content || '');
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(utterance);
+  };
+
+  const handleStartRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = recorder;
+      audioChunksRef.current = [];
+
+      recorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+
+      recorder.onstop = () => {
+        const blob = new Blob(audioChunksRef.current, { type: 'audio/wav' });
+        setAudioBlob(blob);
+        stream.getTracks().forEach((track) => track.stop());
+      };
+
+      recorder.start();
+      setIsRecording(true);
+    } catch (err) {
+      setFeedback('Microphone access denied.');
+    }
+  };
+
+  const handleStopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+    }
+  };
+
+  const handleSpeakingScore = async () => {
+    if (!audioBlob) return;
+    setChecking(true);
+    setFeedback('');
+    try {
+      const response = await aiAPI.speakingScore(
+        audioBlob,
+        items[currentIndex]?.content || '',
+        items[currentIndex]?.id
+      );
+      setAiTranscript(response.data.transcript || '');
+      setAiCorrections(response.data.corrections || []);
+      setAiScore(response.data.score ?? null);
+      setAiPronunciationIssues(response.data.pronunciation_issues || []);
+      setFeedback('Speaking score ready.');
+    } catch (err) {
+      setFeedback('Speaking score failed.');
+    } finally {
+      setChecking(false);
     }
   };
 
@@ -105,47 +367,200 @@ export default function ReviewPage() {
             </span>
           </div>
 
+          <div className="mb-4 flex items-center gap-3">
+            <label className="text-sm text-gray-600">Mode</label>
+            <select
+              className="border rounded-md px-3 py-2 text-sm"
+              value={mode}
+              onChange={(e) => setMode(e.target.value as any)}
+            >
+              <option value="flashcard">Flashcards</option>
+              <option value="cloze">Cloze</option>
+              <option value="listening">Listening + Dictation</option>
+              <option value="speaking">Speaking</option>
+              <option value="writing">Short Writing</option>
+            </select>
+          </div>
+
           <Card className="min-h-[400px] flex flex-col justify-center">
             <CardContent className="p-8">
               <div className="text-center">
                 <p className="text-sm text-gray-500 mb-4 uppercase">
                   {currentItem.type}
                 </p>
-                <h2 className="text-4xl font-bold mb-8">
-                  {currentItem.content}
-                </h2>
-
-                {showAnswer && currentItem.example && (
-                  <div className="mt-8 p-4 bg-blue-50 rounded-lg">
-                    <p className="text-gray-700 italic">
-                      Example: {currentItem.example}
-                    </p>
+                {mode === 'flashcard' && (
+                  <div>
+                    <h2 className="text-4xl font-bold mb-4">{currentItem.content}</h2>
+                    {loadingTranslation ? (
+                      <p className="text-sm text-gray-500">Generating translation...</p>
+                    ) : flashcardPair?.shown ? (
+                      <p className="text-2xl text-gray-700">{flashcardPair.shown}</p>
+                    ) : (
+                      <p className="text-sm text-gray-500">Loading...</p>
+                    )}
                   </div>
                 )}
 
-                {!showAnswer ? (
-                  <Button
-                    size="lg"
-                    onClick={() => setShowAnswer(true)}
-                    className="mt-8"
-                  >
-                    Show Answer
-                  </Button>
-                ) : (
+                {mode === 'cloze' && (
+                  <div className="mb-6">
+                    <p className="text-2xl font-semibold">{clozeData.prompt}</p>
+                    <div className="mt-6">
+                      <input
+                        className="w-full border rounded-md px-3 py-2"
+                        placeholder="Fill the blank"
+                        value={inputText}
+                        onChange={(e) => setInputText(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {mode === 'listening' && (
+                  <div className="mb-6">
+                    <p className="text-sm text-gray-500 mb-3">Listen and type what you hear</p>
+                    <Button onClick={handlePlayAudio} className="mb-4">Play Audio</Button>
+                    <input
+                      className="w-full border rounded-md px-3 py-2"
+                      placeholder="Type what you hear"
+                      value={inputText}
+                      onChange={(e) => setInputText(e.target.value)}
+                    />
+                  </div>
+                )}
+
+                {mode === 'writing' && (
+                  <div className="mb-6">
+                    <p className="text-sm text-gray-500 mb-3">
+                      Write a short sentence using: <span className="font-semibold">{currentItem.content}</span>
+                    </p>
+                    <textarea
+                      className="w-full border rounded-md px-3 py-2 min-h-[120px]"
+                      placeholder="Write your sentence"
+                      value={inputText}
+                      onChange={(e) => setInputText(e.target.value)}
+                    />
+                  </div>
+                )}
+
+                {mode === 'speaking' && (
+                  <div className="mb-6">
+                    <p className="text-sm text-gray-500 mb-3">Read aloud:</p>
+                    <p className="text-xl font-semibold mb-4">{currentItem.content}</p>
+                    <div className="flex justify-center gap-3">
+                      {!isRecording ? (
+                        <Button onClick={handleStartRecording}>Start Recording</Button>
+                      ) : (
+                        <Button variant="destructive" onClick={handleStopRecording}>Stop Recording</Button>
+                      )}
+                      <Button
+                        variant="outline"
+                        onClick={handleSpeakingScore}
+                        disabled={!audioBlob || checking}
+                      >
+                        {checking ? 'Scoring...' : 'Score Speaking'}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {mode === 'flashcard' && flashcardPair?.shown && !loadingTranslation && (
                   <div className="flex gap-4 justify-center mt-8">
                     <Button
                       size="lg"
                       variant="destructive"
-                      onClick={() => handleAnswer('incorrect')}
+                      onClick={() => handleFlashcardAnswer(false)}
                     >
                       Incorrect
                     </Button>
                     <Button
                       size="lg"
-                      onClick={() => handleAnswer('correct')}
+                      onClick={() => handleFlashcardAnswer(true)}
                     >
                       Correct
                     </Button>
+                  </div>
+                )}
+
+                {mode === 'flashcard' && showFlashcardCorrection && flashcardPair?.correct && (
+                  <div className="mt-6 p-4 bg-blue-50 rounded-lg">
+                    <p className="text-gray-700">
+                      Correct translation: <span className="font-semibold">{flashcardPair.correct}</span>
+                    </p>
+                    <div className="mt-4 flex justify-center">
+                      <Button onClick={handleContinueAfterCorrection}>Next</Button>
+                    </div>
+                  </div>
+                )}
+
+                {mode === 'cloze' && (
+                  <div className="mt-6 flex justify-center gap-3">
+                    <Button onClick={() => handleCheckText(clozeData.answer)}>
+                      Check
+                    </Button>
+                  </div>
+                )}
+
+                {mode === 'listening' && (
+                  <div className="mt-6 flex justify-center gap-3">
+                    <Button onClick={() => handleCheckText(currentItem.content)}>
+                      Check
+                    </Button>
+                  </div>
+                )}
+
+                {mode === 'writing' && (
+                  <div className="mt-6 flex justify-center gap-3">
+                    <Button onClick={handleWritingCheck} disabled={checking}>
+                      {checking ? 'Checking...' : 'Check with AI'}
+                    </Button>
+                    <Button variant="outline" onClick={handleSaveWritingResult} disabled={aiScore === null}>
+                      Save Result
+                    </Button>
+                  </div>
+                )}
+
+                {mode === 'speaking' && (
+                  <div className="mt-6 flex justify-center">
+                    <Button variant="outline" onClick={() => handleAnswer((aiScore ?? 0) >= 70 ? 'correct' : 'incorrect')} disabled={aiScore === null}>
+                      Save Result
+                    </Button>
+                  </div>
+                )}
+
+                {feedback && (
+                  <p className="mt-4 text-sm text-gray-600">{feedback}</p>
+                )}
+
+                {(aiScore !== null || aiCorrections.length > 0 || aiTranscript) && (
+                  <div className="mt-6 p-4 bg-gray-50 rounded-lg text-left">
+                    {aiScore !== null && (
+                      <p className="font-semibold">Score: {aiScore}</p>
+                    )}
+                    {aiTranscript && (
+                      <p className="mt-2">Transcript: {aiTranscript}</p>
+                    )}
+                    {aiPronunciationIssues.length > 0 && (
+                      <div className="mt-2">
+                        <p className="font-semibold">Pronunciation issues:</p>
+                        <ul className="list-disc list-inside">
+                          {aiPronunciationIssues.map((issue, idx) => (
+                            <li key={idx}>{issue}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {aiCorrections.length > 0 && (
+                      <div className="mt-2">
+                        <p className="font-semibold">Corrections:</p>
+                        <ul className="list-disc list-inside">
+                          {aiCorrections.map((c, idx) => (
+                            <li key={idx}>
+                              {c.original} → {c.corrected} ({c.category})
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
