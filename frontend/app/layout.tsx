@@ -4,12 +4,13 @@ import './globals.css'
 export const metadata: Metadata = {
   title: 'English Partner',
   description: 'Master English through intelligent spaced repetition and AI-powered learning',
-  viewport: {
-    width: 'device-width',
-    initialScale: 1,
-    maximumScale: 1,
-    userScalable: false,
-  },
+}
+
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
 }
 
 export default function RootLayout({
