@@ -52,64 +52,67 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-3 sm:px-4 py-6">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle className="text-2xl text-center">Create Account</CardTitle>
+          <CardTitle className="text-xl sm:text-2xl text-center">Create Account</CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
-              <div className="bg-red-50 text-red-600 p-3 rounded-md text-sm">
+              <div className="bg-red-50 text-red-600 p-3 rounded-md text-xs sm:text-sm">
                 {error}
               </div>
             )}
 
             <div>
-              <label className="block text-sm font-medium mb-2">Email</label>
+              <label className="block text-xs sm:text-sm font-medium mb-2">Email</label>
               <Input
                 type="email"
                 value={formData.email}
                 onChange={(e) =>
                   setFormData({ ...formData, email: e.target.value })
                 }
+                className="h-10 text-base"
                 required
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-2">Username</label>
+              <label className="block text-xs sm:text-sm font-medium mb-2">Username</label>
               <Input
                 type="text"
                 value={formData.username}
                 onChange={(e) =>
                   setFormData({ ...formData, username: e.target.value })
                 }
+                className="h-10 text-base"
                 required
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-2">Password</label>
+              <label className="block text-xs sm:text-sm font-medium mb-2">Password</label>
               <Input
                 type="password"
                 value={formData.password}
                 onChange={(e) =>
                   setFormData({ ...formData, password: e.target.value })
                 }
+                className="h-10 text-base"
                 required
                 minLength={8}
                 maxLength={64}
               />
             </div>
 
-            <Button type="submit" className="w-full" disabled={loading}>
+            <Button type="submit" className="w-full h-10 sm:h-11 text-base" disabled={loading}>
               {loading ? 'Creating account...' : 'Sign Up'}
             </Button>
 
-            <div className="text-center text-sm">
+            <div className="text-center text-xs sm:text-sm">
               Already have an account?{' '}
-              <a href="/login" className="text-primary hover:underline">
+              <a href="/login" className="text-primary hover:underline font-medium">
                 Sign in
               </a>
             </div>

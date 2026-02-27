@@ -393,56 +393,56 @@ export default function ReviewPage() {
   const currentItem = items[currentIndex];
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="container mx-auto px-4">
+    <div className="min-h-screen bg-gray-50 py-4 sm:py-8">
+      <div className="container mx-auto px-3 sm:px-4">
         <div className="max-w-2xl mx-auto">
-          <div className="mb-6 flex justify-between items-center">
-            <h1 className="text-2xl font-bold">Review Session</h1>
-            <span className="text-gray-600">
+          <div className="mb-4 sm:mb-6 flex justify-between items-center">
+            <h1 className="text-xl sm:text-2xl font-bold truncate">Review Session</h1>
+            <span className="text-sm sm:text-base text-gray-600 ml-2 flex-shrink-0">
               {currentIndex + 1} / {items.length}
             </span>
           </div>
 
-          <div className="mb-4 flex items-center gap-3">
-            <label className="text-sm text-gray-600">Mode</label>
+          <div className="mb-3 sm:mb-4 flex items-center gap-2 sm:gap-3">
+            <label className="text-xs sm:text-sm text-gray-600 whitespace-nowrap">Mode</label>
             <select
-              className="border rounded-md px-3 py-2 text-sm"
+              className="border rounded-md px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm flex-1"
               value={mode}
               onChange={(e) => setMode(e.target.value as any)}
             >
               <option value="flashcard">Flashcards</option>
               <option value="cloze">Cloze</option>
-              <option value="listening">Listening + Dictation</option>
+              <option value="listening">Listening</option>
               <option value="speaking">Speaking</option>
-              <option value="writing">Short Writing</option>
+              <option value="writing">Writing</option>
             </select>
           </div>
 
-          <Card className="min-h-[400px] flex flex-col justify-center">
-            <CardContent className="p-8">
+          <Card className="min-h-[350px] sm:min-h-[400px] flex flex-col justify-center">
+            <CardContent className="p-4 sm:p-8">
               <div className="text-center">
-                <p className="text-sm text-gray-500 mb-4 uppercase">
+                <p className="text-xs sm:text-sm text-gray-500 mb-3 sm:mb-4 uppercase">
                   {currentItem.type}
                 </p>
                 {mode === 'flashcard' && (
                   <div>
-                    <h2 className="text-4xl font-bold mb-4">{currentItem.content}</h2>
+                    <h2 className="text-2xl sm:text-4xl font-bold mb-3 sm:mb-4 break-words">{currentItem.content}</h2>
                     {loadingTranslation ? (
-                      <p className="text-sm text-gray-500">Generating translation...</p>
+                      <p className="text-xs sm:text-sm text-gray-500">Generating translation...</p>
                     ) : flashcardPair?.shown ? (
-                      <p className="text-2xl text-gray-700">{flashcardPair.shown}</p>
+                      <p className="text-lg sm:text-2xl text-gray-700 break-words">{flashcardPair.shown}</p>
                     ) : (
-                      <p className="text-sm text-gray-500">Loading...</p>
+                      <p className="text-xs sm:text-sm text-gray-500">Loading...</p>
                     )}
                   </div>
                 )}
 
                 {mode === 'cloze' && (
-                  <div className="mb-6">
-                    <p className="text-2xl font-semibold">{clozeData.prompt}</p>
-                    <div className="mt-6">
+                  <div className="mb-4 sm:mb-6">
+                    <p className="text-lg sm:text-2xl font-semibold break-words">{clozeData.prompt}</p>
+                    <div className="mt-4 sm:mt-6">
                       <input
-                        className="w-full border rounded-md px-3 py-2"
+                        className="w-full border rounded-md px-3 py-2 text-base"
                         placeholder="Fill the blank"
                         value={inputText}
                         onChange={(e) => setInputText(e.target.value)}
@@ -548,48 +548,48 @@ export default function ReviewPage() {
                 )}
 
                 {mode === 'listening' && (
-                  <div className="mt-6 flex justify-center gap-3">
-                    <Button onClick={() => handleCheckText(currentItem.content)}>
+                  <div className="mt-4 sm:mt-6 flex justify-center gap-2 sm:gap-3">
+                    <Button onClick={() => handleCheckText(currentItem.content)} className="h-9 sm:h-10">
                       Check
                     </Button>
                   </div>
                 )}
 
                 {mode === 'writing' && (
-                  <div className="mt-6 flex justify-center gap-3">
-                    <Button onClick={handleWritingCheck} disabled={checking}>
+                  <div className="mt-4 sm:mt-6 flex flex-col sm:flex-row justify-center gap-2 sm:gap-3">
+                    <Button onClick={handleWritingCheck} disabled={checking} className="h-9 sm:h-10">
                       {checking ? 'Checking...' : 'Check with AI'}
                     </Button>
-                    <Button variant="outline" onClick={handleSaveWritingResult} disabled={aiScore === null}>
+                    <Button variant="outline" onClick={handleSaveWritingResult} disabled={aiScore === null} className="h-9 sm:h-10">
                       Save Result
                     </Button>
                   </div>
                 )}
 
                 {mode === 'speaking' && (
-                  <div className="mt-6 flex justify-center">
-                    <Button variant="outline" onClick={() => handleAnswer((aiScore ?? 0) >= 70 ? 'correct' : 'incorrect')} disabled={aiScore === null}>
+                  <div className="mt-4 sm:mt-6 flex justify-center">
+                    <Button variant="outline" onClick={() => handleAnswer((aiScore ?? 0) >= 70 ? 'correct' : 'incorrect')} disabled={aiScore === null} className="h-9 sm:h-10">
                       Save Result
                     </Button>
                   </div>
                 )}
 
                 {feedback && (
-                  <p className="mt-4 text-sm text-gray-600">{feedback}</p>
+                  <p className="mt-3 sm:mt-4 text-xs sm:text-sm text-gray-600">{feedback}</p>
                 )}
 
                 {(aiScore !== null || aiCorrections.length > 0 || aiTranscript) && (
-                  <div className="mt-6 p-4 bg-gray-50 rounded-lg text-left">
+                  <div className="mt-4 sm:mt-6 p-3 sm:p-4 bg-gray-50 rounded-lg text-left text-sm">
                     {aiScore !== null && (
-                      <p className="font-semibold">Score: {aiScore}</p>
+                      <p className="font-semibold text-sm sm:text-base">Score: {aiScore}</p>
                     )}
                     {aiTranscript && (
-                      <p className="mt-2">Transcript: {aiTranscript}</p>
+                      <p className="mt-2 text-xs sm:text-sm">Transcript: {aiTranscript}</p>
                     )}
                     {aiPronunciationIssues.length > 0 && (
                       <div className="mt-2">
-                        <p className="font-semibold">Pronunciation issues:</p>
-                        <ul className="list-disc list-inside">
+                        <p className="font-semibold text-xs sm:text-sm">Pronunciation issues:</p>
+                        <ul className="list-disc list-inside text-xs sm:text-sm mt-1">
                           {aiPronunciationIssues.map((issue, idx) => (
                             <li key={idx}>{issue}</li>
                           ))}
@@ -614,14 +614,15 @@ export default function ReviewPage() {
             </CardContent>
           </Card>
 
-          <div className="mt-6 flex justify-between">
+          <div className="mt-4 sm:mt-6 flex flex-col sm:flex-row justify-between gap-3 sm:gap-4 items-stretch sm:items-center">
             <Button
               variant="outline"
               onClick={() => router.push('/dashboard')}
+              className="h-10 sm:h-11"
             >
               Exit Review
             </Button>
-            <div className="w-full max-w-xs mx-4">
+            <div className="flex-1 max-w-xs mx-auto sm:mx-4">
               <div className="bg-gray-200 rounded-full h-2">
                 <div
                   className="bg-primary h-2 rounded-full transition-all"

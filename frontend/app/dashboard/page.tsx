@@ -241,22 +241,30 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white shadow-sm">
-        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <h1 className="text-2xl font-bold text-primary">English Partner</h1>
-          <div className="flex gap-4">
-            <Button variant="outline" onClick={() => router.push('/review')}>
-              Start Review
+      <nav className="bg-white shadow-sm sticky top-0 z-40">
+        <div className="container mx-auto px-4 py-3 sm:py-4 flex justify-between items-center">
+          <h1 className="text-xl sm:text-2xl font-bold text-primary truncate">English Partner</h1>
+          <div className="flex gap-2 sm:gap-4">
+            <Button 
+              variant="outline" 
+              onClick={() => router.push('/review')}
+              className="text-xs sm:text-sm h-9 sm:h-10 px-2 sm:px-4"
+            >
+              Review
             </Button>
-            <Button variant="ghost" onClick={handleLogout}>
+            <Button 
+              variant="ghost" 
+              onClick={handleLogout}
+              className="text-xs sm:text-sm h-9 sm:h-10 px-2 sm:px-4"
+            >
               Logout
             </Button>
           </div>
         </div>
       </nav>
 
-      <main className="container mx-auto px-4 py-8">
-        <div className="grid md:grid-cols-2 gap-6 mb-6">
+      <main className="container mx-auto px-3 sm:px-4 py-4 sm:py-8 pb-20 sm:pb-8">
+        <div className="grid md:grid-cols-2 gap-4 sm:gap-6 mb-6">
           {/* Add New Item */}
           <Card>
             <CardHeader>
@@ -299,14 +307,15 @@ export default function DashboardPage() {
                         value={batchContent}
                         onChange={(e) => setBatchContent(e.target.value)}
                         placeholder="One per line or comma-separated:&#10;hello&#10;good morning&#10;how are you"
-                        className="w-full h-48 border rounded-md px-3 py-2 text-sm"
+                        className="w-full h-40 sm:h-48 border rounded-md px-3 py-2 text-base"
+
                       />
                       <p className="text-xs text-gray-500 mt-1">
                         💡 AI will auto-detect type and generate Chinese translations
                       </p>
                     </div>
 
-                    <Button type="submit" className="w-full" disabled={processingBatch}>
+                    <Button type="submit" className="w-full h-10 sm:h-11" disabled={processingBatch}>
                       {processingBatch ? 'Processing...' : 'Add Multiple Items'}
                     </Button>
                   </form>
@@ -352,7 +361,7 @@ export default function DashboardPage() {
                       />
                     </div>
 
-                    <Button type="submit" className="w-full">
+                    <Button type="submit" className="w-full h-10 sm:h-11">
                       Add Item
                     </Button>
                   </form>
@@ -388,7 +397,7 @@ export default function DashboardPage() {
                     </p>
                   )}
                   <Button
-                    className="w-full mt-4"
+                    className="w-full mt-4 h-10 sm:h-11"
                     onClick={() => router.push('/review')}
                   >
                     Start Review Session
@@ -487,14 +496,15 @@ export default function DashboardPage() {
 
       {/* Fullscreen Batch Input Modal */}
       {isFullscreen && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-6xl h-[90vh] flex flex-col">
-            <div className="flex items-center justify-between p-4 border-b">
-              <h2 className="text-xl font-semibold">Batch Input - Fullscreen Mode</h2>
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-2 sm:p-4">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-6xl h-[95vh] sm:h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between p-3 sm:p-4 border-b">
+              <h2 className="text-lg sm:text-xl font-semibold truncate">Batch Input - Fullscreen</h2>
               <Button 
                 variant="ghost" 
                 size="sm"
                 onClick={() => setIsFullscreen(false)}
+                className="ml-2"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -503,8 +513,8 @@ export default function DashboardPage() {
               </Button>
             </div>
             
-            <div className="flex-1 p-4 overflow-hidden">
-              <form onSubmit={handleBatchAddItems} className="h-full flex flex-col gap-4">
+            <div className="flex-1 p-3 sm:p-4 overflow-hidden">
+              <form onSubmit={handleBatchAddItems} className="h-full flex flex-col gap-3 sm:gap-4">
                 {batchFeedback && (
                   <div className={`p-3 rounded-md text-sm ${
                     batchFeedback.includes('✓') ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
@@ -523,29 +533,29 @@ export default function DashboardPage() {
                     value={batchContent}
                     onChange={(e) => setBatchContent(e.target.value)}
                     placeholder="Examples:&#10;hello&#10;good morning&#10;how are you&#10;endorsement - 代言&#10;make a difference&#10;I would like to know more about this topic"
-                    className="flex-1 w-full border rounded-md px-4 py-3 text-base resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="flex-1 w-full border rounded-md px-3 sm:px-4 py-2 sm:py-3 text-base resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
                     autoFocus
                   />
-                  <p className="text-sm text-gray-500 mt-2">
+                  <p className="text-xs sm:text-sm text-gray-500 mt-2">
                     💡 AI will auto-detect type and generate Chinese translations. You can also add notes after " - " separator.
                   </p>
                 </div>
 
-                <div className="flex gap-3">
+                <div className="flex gap-2 sm:gap-3">
                   <Button 
                     type="button" 
                     variant="outline" 
-                    className="flex-1"
+                    className="flex-1 h-10 sm:h-11"
                     onClick={() => setIsFullscreen(false)}
                   >
                     Close
                   </Button>
                   <Button 
                     type="submit" 
-                    className="flex-1" 
+                    className="flex-1 h-10 sm:h-11" 
                     disabled={processingBatch}
                   >
-                    {processingBatch ? 'Processing...' : 'Add Multiple Items'}
+                    {processingBatch ? 'Processing...' : 'Add Items'}
                   </Button>
                 </div>
               </form>

@@ -25,6 +25,11 @@
     --ring: 221.2 83.2% 53.3%;
     --radius: 0.5rem;
   }
+  
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
 }
 
 @layer base {
@@ -33,5 +38,19 @@
   }
   body {
     @apply bg-background text-foreground;
+    /* Prevent iOS zooming on input focus */
+    font-size: 16px;
+  }
+  /* Touch-friendly inputs for mobile */
+  input, textarea, select {
+    font-size: 16px;
   }
 }
+
+/* Ensure minimum touch target size (44px x 44px) */
+@layer components {
+  .touch-target {
+    @apply min-h-[44px] min-w-[44px];
+  }
+}
+

@@ -137,6 +137,47 @@ english-partner/
 
    Frontend will be available at http://localhost:3000
 
+## Mobile Support
+
+The application is fully optimized for mobile phones and tablets:
+
+### Features
+- 📱 **Responsive Design** - Adapts perfectly to all screen sizes (mobile, tablet, desktop)
+- 🎯 **Touch-Friendly** - Large buttons (44x44px minimum) optimized for touch interaction
+- ⌨️ **Mobile Keyboard** - Font size 16px to prevent iOS auto-zoom on input focus
+- 🔤 **Readable Text** - Optimized font sizes for mobile screens
+- 📞 **Speech Recognition** - Native browser Web Speech API for speaking mode (Chrome, Safari, Edge)
+- 🔊 **Text-to-Speech** - Built-in speech synthesis without external dependencies
+
+### Mobile Optimization Details
+1. **Responsive Breakpoints**:
+   - Mobile: `< 640px` (sm breakpoint)
+   - Tablet: `640px - 1024px`
+   - Desktop: `> 1024px`
+
+2. **Touch Targets**: All interactive elements meet 44x44px minimum size for mobile
+
+3. **Fullscreen Input Mode**: Batch input with dedicated fullscreen editor on mobile
+
+4. **Viewport Configuration**: Proper meta viewport for responsive layout
+
+5. **Text Input Optimization**:
+   - 16px font size prevents iOS zoom-on-focus
+   - Native input controls for better mobile UX
+   - Optimized placeholder text
+
+### Supported Mobile Browsers
+- Chrome (Android) - Full support including Web Speech API
+- Safari (iOS) - Full support including Web Speech API  
+- Edge (Android/iOS) - Full support
+- Firefox (Android) - Full support (without Web Speech API)
+
+### Mobile Usage Tips
+1. Use portrait or landscape mode - both are fully supported
+2. Batch input supports multiline entry with fullscreen editor
+3. Speaking mode uses device microphone via Web Speech API
+4. All AI features work seamlessly on mobile
+
 ## Usage
 
 1. **Register** a new account
