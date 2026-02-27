@@ -21,11 +21,12 @@ Build a web app that helps users review what they learned yesterday using multip
 
 ## 3) MVP Definition
 Minimum Viable Product = smallest version that delivers core value:
-- Create learning items
+- Create learning items (simplified batch input with AI auto-detection)
 - Yesterday review list
 - Flashcards + cloze
 - Writing correction
 - Track results and next review date
+- AI auto-generates type and Chinese translations for all items
 
 ## 4) Architecture Overview
 ### Frontend
@@ -100,8 +101,8 @@ MySQL is acceptable if required, but PostgreSQL provides easier long‑term flex
 - `POST /auth/login`
 
 ### Learning Items
-- `POST /items`
-- `GET /items?date=YYYY-MM-DD`
+- `POST /items` - Create single item (auto-detects type, can include translation)
+- `GET /items?date=YYYY-MM-DD` - List items (batch input uses this after classification)
 
 ### Reviews
 - `GET /reviews/yesterday`

@@ -16,11 +16,15 @@ export default function DashboardPage() {
     content: '',
     example: '',
   });
+  const [batchContent, setBatchContent] = useState('');
+  const [processingBatch, setProcessingBatch] = useState(false);
+  const [batchFeedback, setBatchFeedback] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [classifying, setClassifying] = useState(false);
   const [typeExplanation, setTypeExplanation] = useState('');
   const [expandedSessions, setExpandedSessions] = useState<Set<number>>(new Set());
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem('access_token');
@@ -98,22 +102,136 @@ export default function DashboardPage() {
     });
   };
 
+  const parseInputLine = (input: string) => {
+    const trimmed = input.trim();
+    if (!trimmed) return { content: '', note: '' };
+
+    // Split by common separators: " - ", " — ", " – ", ":", "："
+    const separators = [' - ', ' — ', ' – ', ':', '：'];
+    for (const sep of separators) {
+      const idx = trimmed.indexOf(sep);
+      if (idx > 0) {
+        return {
+          content: trimmed.slice(0, idx).trim(),
+          note: trimmed.slice(idx + sep.length).trim(),
+        };
+      }
+    }
+
+    return { content: trimmed, note: '' };
+  };
+
   const handleAddItem = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
+    const parsed = parseInputLine(newItem.content);
+    if (!parsed.content) {
+      setError('Content is empty');
+      return;
+    }
+
     try {
-      await itemsAPI.create(newItem);
+      const exampleValue = newItem.example || parsed.note;
+      await itemsAPI.create({
+        ...newItem,
+        content: parsed.content,
+        example: exampleValue,
+      });
       setNewItem({ type: 'word', content: '', example: '' });
       loadReviewItems();
     } catch (err: any) {
       if (err.response?.status === 409) {
-        const detail = err.response.data.detail;
-        setError(detail.message || 'Item already exists');
+        setError('Item already exists');
       } else {
         setError('Failed to add item');
       }
     }
+  };
+
+  const handleBatchAddItems = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setBatchFeedback('');
+    
+    if (!batchContent.trim()) {
+      setBatchFeedback('Please enter at least one item');
+      return;
+    }
+
+    // Parse batch input - supports multiple lines or comma-separated
+    const items = batchContent
+      .split(/[\n,]/)
+      .map(item => item.trim())
+      .filter(item => item.length > 0)
+      .map(item => parseInputLine(item))
+      .filter(item => item.content.length > 0);
+
+    if (items.length === 0) {
+      setBatchFeedback('No valid items found');
+      return;
+    }
+
+    setProcessingBatch(true);
+    let successCount = 0;
+    let failureCount = 0;
+    let skippedCount = 0;
+    const errors: string[] = [];
+
+    for (const item of items) {
+      try {
+        // Classify type
+        const classifyRes = await aiAPI.classify({ text: item.content });
+        const type = classifyRes.data.type;
+
+        // Translate to Chinese
+        let translation = item.note || '';
+        try {
+          if (!translation) {
+            const translateRes = await aiAPI.translate({
+              text: item.content,
+              source_lang: 'English',
+              target_lang: 'Chinese',
+            });
+            translation = translateRes.data.translation;
+          }
+        } catch (err) {
+          translation = '';
+        }
+
+        // Create item
+        await itemsAPI.create({
+          type,
+          content: item.content,
+          example: translation,
+        });
+
+        successCount++;
+      } catch (err: any) {
+        if (err.response?.status === 409) {
+          skippedCount++;
+          continue;
+        }
+        failureCount++;
+        const errorMsg = err.response?.data?.detail?.message || err.message || 'Unknown error';
+        errors.push(`"${item.content}": ${errorMsg}`);
+      }
+    }
+
+    setProcessingBatch(false);
+    setBatchContent('');
+    
+    const message = `✓ Added ${successCount} items${skippedCount > 0 ? `, ${skippedCount} skipped` : ''}${failureCount > 0 ? `, ${failureCount} failed` : ''}`;
+    setBatchFeedback(message);
+    
+    if (errors.length > 0) {
+      setBatchFeedback(prev => prev + '\n' + errors.join('\n'));
+    }
+
+    // Reload items
+    setTimeout(() => {
+      loadReviewItems();
+      setBatchFeedback('');
+    }, 1000);
   };
 
   const handleLogout = () => {
@@ -142,58 +260,104 @@ export default function DashboardPage() {
           {/* Add New Item */}
           <Card>
             <CardHeader>
-              <CardTitle>Add Learning Item</CardTitle>
+              <CardTitle>Add Learning Items</CardTitle>
             </CardHeader>
             <CardContent>
-              <form onSubmit={handleAddItem} className="space-y-4">
-                {error && (
-                  <div className="bg-red-50 text-red-600 p-3 rounded-md text-sm">
-                    {error}
-                  </div>
-                )}
-
+              <div className="space-y-6">
+                {/* Batch Add Tab */}
                 <div>
-                  <label className="block text-sm font-medium mb-2">
-                    Type {classifying && <span className="text-xs text-gray-500">(detecting...)</span>}
-                  </label>
-                  <div className="w-full h-10 rounded-md border border-input bg-gray-50 px-3 py-2 flex items-center justify-between">
-                    <span className="capitalize font-medium">{newItem.type}</span>
-                    {typeExplanation && (
-                      <span className="text-xs text-gray-500">✓ AI detected</span>
+                  <h3 className="font-semibold mb-3">Quick Add (Recommended)</h3>
+                  <form onSubmit={handleBatchAddItems} className="space-y-3">
+                    {batchFeedback && (
+                      <div className={`p-3 rounded-md text-sm ${
+                        batchFeedback.includes('✓') ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
+                      }`}>
+                        {batchFeedback.split('\n').map((line, i) => (
+                          <div key={i}>{line}</div>
+                        ))}
+                      </div>
                     )}
-                  </div>
-                  {typeExplanation && (
-                    <p className="text-xs text-gray-600 mt-1">{typeExplanation}</p>
-                  )}
+                    
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <label className="block text-sm font-medium">
+                          Enter words, phrases, or sentences
+                        </label>
+                        <Button 
+                          type="button"
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => setIsFullscreen(true)}
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1">
+                            <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+                          </svg>
+                          Fullscreen
+                        </Button>
+                      </div>
+                      <textarea
+                        value={batchContent}
+                        onChange={(e) => setBatchContent(e.target.value)}
+                        placeholder="One per line or comma-separated:&#10;hello&#10;good morning&#10;how are you"
+                        className="w-full h-48 border rounded-md px-3 py-2 text-sm"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        💡 AI will auto-detect type and generate Chinese translations
+                      </p>
+                    </div>
+
+                    <Button type="submit" className="w-full" disabled={processingBatch}>
+                      {processingBatch ? 'Processing...' : 'Add Multiple Items'}
+                    </Button>
+                  </form>
                 </div>
 
+                {/* Divider */}
+                <div className="border-t pt-4">
+                  <p className="text-sm text-gray-600 text-center">Or</p>
+                </div>
+
+                {/* Manual Add Tab */}
                 <div>
-                  <label className="block text-sm font-medium mb-2">Content</label>
-                  <Input
-                    value={newItem.content}
-                    onChange={(e) =>
-                      setNewItem({ ...newItem, content: e.target.value })
-                    }
-                    placeholder="Enter word, phrase, or sentence"
-                    required
-                  />
-                </div>
+                  <h3 className="font-semibold mb-3">Manual Add</h3>
+                  <form onSubmit={handleAddItem} className="space-y-4">
+                    {error && (
+                      <div className="bg-red-50 text-red-600 p-3 rounded-md text-sm">
+                        {error}
+                      </div>
+                    )}
 
-                <div>
-                  <label className="block text-sm font-medium mb-2">Example</label>
-                  <Input
-                    value={newItem.example}
-                    onChange={(e) =>
-                      setNewItem({ ...newItem, example: e.target.value })
-                    }
-                    placeholder="Usage example (optional)"
-                  />
-                </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-2">Content</label>
+                      <Input
+                        value={newItem.content}
+                        onChange={(e) =>
+                          setNewItem({ ...newItem, content: e.target.value })
+                        }
+                        placeholder="Enter word, phrase, or sentence"
+                        required
+                      />
+                    </div>
 
-                <Button type="submit" className="w-full">
-                  Add Item
-                </Button>
-              </form>
+                    <div>
+                      <label className="block text-sm font-medium mb-2">
+                        Example/Translation (Optional)
+                      </label>
+                      <Input
+                        value={newItem.example}
+                        onChange={(e) =>
+                          setNewItem({ ...newItem, example: e.target.value })
+                        }
+                        placeholder="Chinese translation or usage example"
+                      />
+                    </div>
+
+                    <Button type="submit" className="w-full">
+                      Add Item
+                    </Button>
+                  </form>
+                </div>
+              </div>
             </CardContent>
           </Card>
 
@@ -320,6 +484,75 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
       </main>
+
+      {/* Fullscreen Batch Input Modal */}
+      {isFullscreen && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-6xl h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between p-4 border-b">
+              <h2 className="text-xl font-semibold">Batch Input - Fullscreen Mode</h2>
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={() => setIsFullscreen(false)}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </Button>
+            </div>
+            
+            <div className="flex-1 p-4 overflow-hidden">
+              <form onSubmit={handleBatchAddItems} className="h-full flex flex-col gap-4">
+                {batchFeedback && (
+                  <div className={`p-3 rounded-md text-sm ${
+                    batchFeedback.includes('✓') ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
+                  }`}>
+                    {batchFeedback.split('\n').map((line, i) => (
+                      <div key={i}>{line}</div>
+                    ))}
+                  </div>
+                )}
+                
+                <div className="flex-1 flex flex-col">
+                  <label className="block text-sm font-medium mb-2">
+                    Enter words, phrases, or sentences (one per line or comma-separated)
+                  </label>
+                  <textarea
+                    value={batchContent}
+                    onChange={(e) => setBatchContent(e.target.value)}
+                    placeholder="Examples:&#10;hello&#10;good morning&#10;how are you&#10;endorsement - 代言&#10;make a difference&#10;I would like to know more about this topic"
+                    className="flex-1 w-full border rounded-md px-4 py-3 text-base resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    autoFocus
+                  />
+                  <p className="text-sm text-gray-500 mt-2">
+                    💡 AI will auto-detect type and generate Chinese translations. You can also add notes after " - " separator.
+                  </p>
+                </div>
+
+                <div className="flex gap-3">
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    className="flex-1"
+                    onClick={() => setIsFullscreen(false)}
+                  >
+                    Close
+                  </Button>
+                  <Button 
+                    type="submit" 
+                    className="flex-1" 
+                    disabled={processingBatch}
+                  >
+                    {processingBatch ? 'Processing...' : 'Add Multiple Items'}
+                  </Button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
