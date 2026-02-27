@@ -16,7 +16,14 @@ app = FastAPI(
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # Frontend URL
+    allow_origins=[
+        "http://localhost:3000",     # 本地开发 - 直接访问前端
+        "http://localhost",          # 本地开发 - 通过nginx
+        "http://frontend:3000",      # Docker容器间通信
+        # 生产环境请添加你的域名:
+        # "https://yourdomain.com",
+        # "https://www.yourdomain.com",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
