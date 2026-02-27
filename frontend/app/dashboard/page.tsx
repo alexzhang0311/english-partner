@@ -51,7 +51,6 @@ export default function DashboardPage() {
     try {
       const response = await reviewsAPI.getHistory(5);
       setReviewHistory(response.data);
-      // Auto-expand the latest session
       if (response.data.length > 0) {
         setExpandedSessions(new Set([response.data[0].id]));
       }
@@ -66,7 +65,6 @@ export default function DashboardPage() {
         setTypeExplanation('');
         return;
       }
-      
       setClassifying(true);
       try {
         const response = await aiAPI.classify({ text });
@@ -105,8 +103,6 @@ export default function DashboardPage() {
   const parseInputLine = (input: string) => {
     const trimmed = input.trim();
     if (!trimmed) return { content: '', note: '' };
-
-    // Split by common separators: " - ", " — ", " – ", ":", "："
     const separators = [' - ', ' — ', ' – ', ':', '：'];
     for (const sep of separators) {
       const idx = trimmed.indexOf(sep);
@@ -117,20 +113,17 @@ export default function DashboardPage() {
         };
       }
     }
-
     return { content: trimmed, note: '' };
   };
 
   const handleAddItem = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-
     const parsed = parseInputLine(newItem.content);
     if (!parsed.content) {
       setError('Content is empty');
       return;
     }
-
     try {
       const exampleValue = newItem.example || parsed.note;
       await itemsAPI.create({
@@ -152,13 +145,10 @@ export default function DashboardPage() {
   const handleBatchAddItems = async (e: React.FormEvent) => {
     e.preventDefault();
     setBatchFeedback('');
-    
     if (!batchContent.trim()) {
       setBatchFeedback('Please enter at least one item');
       return;
     }
-
-    // Parse batch input - supports multiple lines or comma-separated
     const items = batchContent
       .split(/[\n,]/)
       .map(item => item.trim())
@@ -179,11 +169,8 @@ export default function DashboardPage() {
 
     for (const item of items) {
       try {
-        // Classify type
         const classifyRes = await aiAPI.classify({ text: item.content });
         const type = classifyRes.data.type;
-
-        // Translate to Chinese
         let translation = item.note || '';
         try {
           if (!translation) {
@@ -197,14 +184,11 @@ export default function DashboardPage() {
         } catch (err) {
           translation = '';
         }
-
-        // Create item
         await itemsAPI.create({
           type,
           content: item.content,
           example: translation,
         });
-
         successCount++;
       } catch (err: any) {
         if (err.response?.status === 409) {
@@ -219,15 +203,11 @@ export default function DashboardPage() {
 
     setProcessingBatch(false);
     setBatchContent('');
-    
-    const message = `✓ Added ${successCount} items${skippedCount > 0 ? `, ${skippedCount} skipped` : ''}${failureCount > 0 ? `, ${failureCount} failed` : ''}`;
+    const message = `Added ${successCount} items${skippedCount > 0 ? `, ${skippedCount} skipped` : ''}${failureCount > 0 ? `, ${failureCount} failed` : ''}`;
     setBatchFeedback(message);
-    
     if (errors.length > 0) {
       setBatchFeedback(prev => prev + '\n' + errors.join('\n'));
     }
-
-    // Reload items
     setTimeout(() => {
       loadReviewItems();
       setBatchFeedback('');
@@ -240,322 +220,386 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white shadow-sm sticky top-0 z-40">
-        <div className="container mx-auto px-4 py-3 sm:py-4 flex justify-between items-center">
-          <h1 className="text-xl sm:text-2xl font-bold text-primary truncate">English Partner</h1>
-          <div className="flex gap-2 sm:gap-4">
-            <Button 
-              variant="outline" 
+    <div className="min-h-screen bg-premium-surface">
+      {/* Navigation */}
+      <nav className="sticky top-0 z-40 bg-white/80 backdrop-blur-xl border-b border-border/50">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex justify-between items-center">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center flex-shrink-0">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+                <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+              </svg>
+            </div>
+            <h1 className="text-lg font-semibold text-foreground tracking-tight">English Partner</h1>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="default"
+              size="sm"
               onClick={() => router.push('/review')}
-              className="text-xs sm:text-sm h-9 sm:h-10 px-2 sm:px-4"
+              className="text-xs"
             >
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1.5">
+                <polyline points="9 11 12 14 22 4"/>
+                <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+              </svg>
               Review
             </Button>
-            <Button 
-              variant="ghost" 
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={handleLogout}
-              className="text-xs sm:text-sm h-9 sm:h-10 px-2 sm:px-4"
+              className="text-xs text-muted-foreground"
             >
-              Logout
+              Sign Out
             </Button>
           </div>
         </div>
       </nav>
 
-      <main className="container mx-auto px-3 sm:px-4 py-4 sm:py-8 pb-20 sm:pb-8">
-        <div className="grid md:grid-cols-2 gap-4 sm:gap-6 mb-6">
-          {/* Add New Item */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Add Learning Items</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-6">
-                {/* Batch Add Tab */}
-                <div>
-                  <h3 className="font-semibold mb-3">Quick Add (Recommended)</h3>
-                  <form onSubmit={handleBatchAddItems} className="space-y-3">
-                    {batchFeedback && (
-                      <div className={`p-3 rounded-md text-sm ${
-                        batchFeedback.includes('✓') ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
-                      }`}>
-                        {batchFeedback.split('\n').map((line, i) => (
-                          <div key={i}>{line}</div>
-                        ))}
-                      </div>
-                    )}
-                    
-                    <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <label className="block text-sm font-medium">
-                          Enter words, phrases, or sentences
-                        </label>
-                        <Button 
-                          type="button"
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => setIsFullscreen(true)}
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1">
-                            <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
-                          </svg>
-                          Fullscreen
-                        </Button>
-                      </div>
-                      <textarea
-                        value={batchContent}
-                        onChange={(e) => setBatchContent(e.target.value)}
-                        placeholder="One per line or comma-separated:&#10;hello&#10;good morning&#10;how are you"
-                        className="w-full h-40 sm:h-48 border rounded-md px-3 py-2 text-base"
-
-                      />
-                      <p className="text-xs text-gray-500 mt-1">
-                        💡 AI will auto-detect type and generate Chinese translations
-                      </p>
+      {/* Main Content */}
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 pb-20 sm:pb-8">
+        <div className="grid lg:grid-cols-5 gap-6">
+          {/* Left Column - Add Items */}
+          <div className="lg:col-span-3 space-y-6">
+            {/* Quick Add Card */}
+            <Card className="card-premium">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-base">Add Learning Items</CardTitle>
+                    <p className="text-xs text-muted-foreground mt-1">AI auto-detects type and generates translations</p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsFullscreen(true)}
+                    className="text-xs"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1">
+                      <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
+                    </svg>
+                    Expand
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleBatchAddItems} className="space-y-4">
+                  {batchFeedback && (
+                    <div className={`px-4 py-3 rounded-xl text-sm animate-fade-in ${
+                      batchFeedback.includes('Added') && !batchFeedback.includes('0 items')
+                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
+                        : 'bg-red-50 text-red-600 border border-red-100'
+                    }`}>
+                      {batchFeedback.split('\n').map((line, i) => (
+                        <div key={i}>{line}</div>
+                      ))}
                     </div>
+                  )}
 
-                    <Button type="submit" className="w-full h-10 sm:h-11" disabled={processingBatch}>
-                      {processingBatch ? 'Processing...' : 'Add Multiple Items'}
-                    </Button>
-                  </form>
-                </div>
+                  <textarea
+                    value={batchContent}
+                    onChange={(e) => setBatchContent(e.target.value)}
+                    placeholder="Enter words, phrases, or sentences — one per line or comma-separated&#10;&#10;hello&#10;good morning&#10;endorsement - 代言"
+                    className="w-full h-40 sm:h-48 bg-muted/30 border border-border/50 rounded-xl px-4 py-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-ring/20 focus:border-foreground/20 transition-all duration-200 placeholder:text-muted-foreground/40"
+                  />
 
-                {/* Divider */}
-                <div className="border-t pt-4">
-                  <p className="text-sm text-gray-600 text-center">Or</p>
-                </div>
+                  <Button type="submit" className="w-full h-11" disabled={processingBatch}>
+                    {processingBatch ? (
+                      <span className="flex items-center gap-2">
+                        <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+                        </svg>
+                        Processing...
+                      </span>
+                    ) : 'Add Items'}
+                  </Button>
+                </form>
 
-                {/* Manual Add Tab */}
-                <div>
-                  <h3 className="font-semibold mb-3">Manual Add</h3>
-                  <form onSubmit={handleAddItem} className="space-y-4">
+                {/* Manual Add - Collapsible */}
+                <details className="mt-6 group">
+                  <summary className="text-xs font-medium text-muted-foreground cursor-pointer hover:text-foreground transition-colors flex items-center gap-1.5">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="transition-transform group-open:rotate-90">
+                      <polyline points="9 18 15 12 9 6"/>
+                    </svg>
+                    Manual Add (Single Item)
+                  </summary>
+                  <form onSubmit={handleAddItem} className="space-y-4 mt-4 pt-4 border-t border-border/30">
                     {error && (
-                      <div className="bg-red-50 text-red-600 p-3 rounded-md text-sm">
+                      <div className="bg-red-50 text-red-600 border border-red-100 px-4 py-3 rounded-xl text-sm animate-fade-in">
                         {error}
                       </div>
                     )}
-
-                    <div>
-                      <label className="block text-sm font-medium mb-2">Content</label>
+                    <div className="space-y-1.5">
+                      <label className="block text-xs font-medium text-muted-foreground">Content</label>
                       <Input
                         value={newItem.content}
-                        onChange={(e) =>
-                          setNewItem({ ...newItem, content: e.target.value })
-                        }
+                        onChange={(e) => setNewItem({ ...newItem, content: e.target.value })}
                         placeholder="Enter word, phrase, or sentence"
                         required
                       />
                     </div>
-
-                    <div>
-                      <label className="block text-sm font-medium mb-2">
-                        Example/Translation (Optional)
-                      </label>
+                    <div className="space-y-1.5">
+                      <label className="block text-xs font-medium text-muted-foreground">Translation / Example (Optional)</label>
                       <Input
                         value={newItem.example}
-                        onChange={(e) =>
-                          setNewItem({ ...newItem, example: e.target.value })
-                        }
+                        onChange={(e) => setNewItem({ ...newItem, example: e.target.value })}
                         placeholder="Chinese translation or usage example"
                       />
                     </div>
-
-                    <Button type="submit" className="w-full h-10 sm:h-11">
+                    <Button type="submit" variant="outline" className="w-full h-10">
                       Add Item
                     </Button>
                   </form>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+                </details>
+              </CardContent>
+            </Card>
+          </div>
 
-          {/* Today's Review */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Today's Review ({reviewItems.length})</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {loading ? (
-                <p className="text-gray-500">Loading...</p>
-              ) : reviewItems.length === 0 ? (
-                <p className="text-gray-500">No items to review today. Add some learning items!</p>
-              ) : (
-                <div className="space-y-2">
-                  {reviewItems.slice(0, 5).map((item: any) => (
-                    <div
-                      key={item.id}
-                      className="p-3 bg-gray-50 rounded-md"
-                    >
-                      <p className="font-medium">{item.content}</p>
-                      <p className="text-sm text-gray-500">{item.type}</p>
+          {/* Right Column - Review & History */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Today's Review */}
+            <Card className="card-premium">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-base">Today&apos;s Review</CardTitle>
+                  <span className="text-xs font-semibold bg-primary/10 text-primary px-2.5 py-1 rounded-full">
+                    {reviewItems.length} items
+                  </span>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {loading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <svg className="animate-spin h-5 w-5 text-muted-foreground" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+                    </svg>
+                  </div>
+                ) : reviewItems.length === 0 ? (
+                  <div className="text-center py-8">
+                    <div className="w-12 h-12 rounded-2xl bg-muted/50 flex items-center justify-center mx-auto mb-3">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-muted-foreground/50">
+                        <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+                        <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+                      </svg>
                     </div>
-                  ))}
-                  {reviewItems.length > 5 && (
-                    <p className="text-sm text-gray-500 text-center mt-4">
-                      +{reviewItems.length - 5} more items
-                    </p>
-                  )}
-                  <Button
-                    className="w-full mt-4 h-10 sm:h-11"
-                    onClick={() => router.push('/review')}
-                  >
-                    Start Review Session
-                  </Button>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Review History */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Recent Review History</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {reviewHistory.length === 0 ? (
-              <p className="text-gray-500">No review history yet. Complete a review session to see your progress!</p>
-            ) : (
-              <div className="space-y-3">
-                {reviewHistory.map((session: any, index: number) => {
-                  const isExpanded = expandedSessions.has(session.id);
-                  const isLatest = index === 0;
-                  
-                  return (
-                    <div key={session.id} className="border rounded-lg overflow-hidden">
-                      <div 
-                        className="p-4 bg-gray-50 cursor-pointer hover:bg-gray-100 transition-colors"
-                        onClick={() => toggleSession(session.id)}
-                      >
-                        <div className="flex justify-between items-start">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2">
-                              <p className="font-semibold capitalize">{session.mode} Review</p>
-                              {isLatest && (
-                                <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">Latest</span>
-                              )}
-                            </div>
-                            <p className="text-sm text-gray-500">
-                              {new Date(session.date).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' })}
-                            </p>
-                          </div>
-                          <div className="text-right flex items-center gap-3">
-                            <div>
-                              <p className="text-lg font-bold">
-                                {session.score?.toFixed(0)}%
-                              </p>
-                              <p className="text-sm text-gray-500">
-                                {session.items.filter((i: any) => i.result === 'correct').length}/{session.items.length} correct
-                              </p>
-                            </div>
-                            <span className="text-gray-400">
-                              {isExpanded ? '▼' : '▶'}
-                            </span>
-                          </div>
+                    <p className="text-sm text-muted-foreground">No items to review today</p>
+                    <p className="text-xs text-muted-foreground/60 mt-1">Add some learning items to get started</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {reviewItems.slice(0, 5).map((item: any) => (
+                      <div key={item.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-xl">
+                        <div className="min-w-0 flex-1">
+                          <p className="font-medium text-sm truncate">{item.content}</p>
+                          <p className="text-xs text-muted-foreground capitalize">{item.type}</p>
                         </div>
                       </div>
-                      
-                      {isExpanded && (
-                        <div className="p-4 space-y-2 bg-white">
-                          {session.items.map((item: any) => (
-                            <div
-                              key={item.id}
-                              className={`flex items-center gap-2 p-2 rounded ${
-                                item.result === 'correct' 
-                                  ? 'bg-green-50 border border-green-200' 
-                                  : 'bg-red-50 border border-red-200'
-                              }`}
-                            >
-                              <span className="text-lg">
-                                {item.result === 'correct' ? '✓' : '✗'}
-                              </span>
-                              <div className="flex-1">
-                                <p className="font-medium text-sm">{item.item.content}</p>
-                                <p className="text-xs text-gray-600 capitalize">{item.item.type}</p>
+                    ))}
+                    {reviewItems.length > 5 && (
+                      <p className="text-xs text-muted-foreground text-center py-1">
+                        +{reviewItems.length - 5} more items
+                      </p>
+                    )}
+                    <Button
+                      className="w-full h-11 mt-3"
+                      variant="premium"
+                      onClick={() => router.push('/review')}
+                    >
+                      Start Review Session
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="ml-2">
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                        <polyline points="12 5 19 12 12 19"/>
+                      </svg>
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Review History */}
+            <Card className="card-premium">
+              <CardHeader>
+                <CardTitle className="text-base">Recent History</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {reviewHistory.length === 0 ? (
+                  <div className="text-center py-6">
+                    <p className="text-sm text-muted-foreground">No review history yet</p>
+                    <p className="text-xs text-muted-foreground/60 mt-1">Complete a review session to see progress</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {reviewHistory.map((session: any, index: number) => {
+                      const isExpanded = expandedSessions.has(session.id);
+                      const isLatest = index === 0;
+                      const correctCount = session.items.filter((i: any) => i.result === 'correct').length;
+                      const scoreColor = (session.score ?? 0) >= 80 ? 'text-emerald-600' : (session.score ?? 0) >= 60 ? 'text-amber-600' : 'text-red-500';
+
+                      return (
+                        <div key={session.id} className="rounded-xl border border-border/50 overflow-hidden">
+                          <div
+                            className="p-3.5 cursor-pointer hover:bg-muted/30 transition-colors"
+                            onClick={() => toggleSession(session.id)}
+                          >
+                            <div className="flex justify-between items-center">
+                              <div className="flex items-center gap-2 min-w-0">
+                                <div className="flex flex-col min-w-0">
+                                  <div className="flex items-center gap-2">
+                                    <p className="font-medium text-sm capitalize truncate">{session.mode}</p>
+                                    {isLatest && (
+                                      <span className="text-[10px] font-medium bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-md flex-shrink-0">Latest</span>
+                                    )}
+                                  </div>
+                                  <p className="text-[11px] text-muted-foreground">
+                                    {new Date(session.date).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' })}
+                                  </p>
+                                </div>
                               </div>
-                              {item.score !== null && (
-                                <span className={`text-sm font-semibold ${
-                                  item.result === 'correct' ? 'text-green-700' : 'text-red-700'
-                                }`}>
-                                  {item.score.toFixed(0)}
-                                </span>
-                              )}
+                              <div className="flex items-center gap-3 flex-shrink-0">
+                                <div className="text-right">
+                                  <p className={`text-base font-bold ${scoreColor}`}>
+                                    {session.score?.toFixed(0)}%
+                                  </p>
+                                  <p className="text-[11px] text-muted-foreground">
+                                    {correctCount}/{session.items.length}
+                                  </p>
+                                </div>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`text-muted-foreground/40 transition-transform duration-200 ${isExpanded ? 'rotate-90' : ''}`}>
+                                  <polyline points="9 18 15 12 9 6"/>
+                                </svg>
+                              </div>
                             </div>
-                          ))}
+                          </div>
+
+                          {isExpanded && (
+                            <div className="px-3.5 pb-3.5 space-y-1.5 animate-fade-in">
+                              {session.items.map((item: any) => (
+                                <div
+                                  key={item.id}
+                                  className={`flex items-center gap-2.5 p-2.5 rounded-lg text-sm ${
+                                    item.result === 'correct'
+                                      ? 'bg-emerald-50/80 border border-emerald-100'
+                                      : 'bg-red-50/80 border border-red-100'
+                                  }`}
+                                >
+                                  <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${
+                                    item.result === 'correct' ? 'bg-emerald-500' : 'bg-red-400'
+                                  }`}>
+                                    {item.result === 'correct' ? (
+                                      <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                        <polyline points="20 6 9 17 4 12"/>
+                                      </svg>
+                                    ) : (
+                                      <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                        <line x1="18" y1="6" x2="6" y2="18"/>
+                                        <line x1="6" y1="6" x2="18" y2="18"/>
+                                      </svg>
+                                    )}
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="font-medium text-xs truncate">{item.item.content}</p>
+                                    <p className="text-[10px] text-muted-foreground capitalize">{item.item.type}</p>
+                                  </div>
+                                  {item.score !== null && (
+                                    <span className={`text-xs font-semibold flex-shrink-0 ${
+                                      item.result === 'correct' ? 'text-emerald-600' : 'text-red-500'
+                                    }`}>
+                                      {item.score.toFixed(0)}
+                                    </span>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          )}
                         </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                      );
+                    })}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </div>
       </main>
 
       {/* Fullscreen Batch Input Modal */}
       {isFullscreen && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-2 sm:p-4">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-6xl h-[95vh] sm:h-[90vh] flex flex-col">
-            <div className="flex items-center justify-between p-3 sm:p-4 border-b">
-              <h2 className="text-lg sm:text-xl font-semibold truncate">Batch Input - Fullscreen</h2>
-              <Button 
-                variant="ghost" 
-                size="sm"
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-6 animate-fade-in">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl h-[92vh] sm:h-[85vh] flex flex-col overflow-hidden">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-border/50">
+              <div>
+                <h2 className="text-lg font-semibold">Batch Input</h2>
+                <p className="text-xs text-muted-foreground mt-0.5">Add multiple items at once</p>
+              </div>
+              <button
                 onClick={() => setIsFullscreen(false)}
-                className="ml-2"
+                className="w-8 h-8 rounded-lg hover:bg-muted/50 flex items-center justify-center transition-colors"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <line x1="18" y1="6" x2="6" y2="18"></line>
-                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18"/>
+                  <line x1="6" y1="6" x2="18" y2="18"/>
                 </svg>
-              </Button>
+              </button>
             </div>
-            
-            <div className="flex-1 p-3 sm:p-4 overflow-hidden">
-              <form onSubmit={handleBatchAddItems} className="h-full flex flex-col gap-3 sm:gap-4">
+
+            <div className="flex-1 p-6 overflow-hidden">
+              <form onSubmit={handleBatchAddItems} className="h-full flex flex-col gap-4">
                 {batchFeedback && (
-                  <div className={`p-3 rounded-md text-sm ${
-                    batchFeedback.includes('✓') ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
+                  <div className={`px-4 py-3 rounded-xl text-sm ${
+                    batchFeedback.includes('Added') && !batchFeedback.includes('0 items')
+                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
+                      : 'bg-red-50 text-red-600 border border-red-100'
                   }`}>
                     {batchFeedback.split('\n').map((line, i) => (
                       <div key={i}>{line}</div>
                     ))}
                   </div>
                 )}
-                
+
                 <div className="flex-1 flex flex-col">
-                  <label className="block text-sm font-medium mb-2">
+                  <label className="block text-xs font-medium text-muted-foreground mb-2">
                     Enter words, phrases, or sentences (one per line or comma-separated)
                   </label>
                   <textarea
                     value={batchContent}
                     onChange={(e) => setBatchContent(e.target.value)}
-                    placeholder="Examples:&#10;hello&#10;good morning&#10;how are you&#10;endorsement - 代言&#10;make a difference&#10;I would like to know more about this topic"
-                    className="flex-1 w-full border rounded-md px-3 sm:px-4 py-2 sm:py-3 text-base resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="hello&#10;good morning&#10;how are you&#10;endorsement - 代言&#10;make a difference"
+                    className="flex-1 w-full bg-muted/20 border border-border/50 rounded-xl px-4 py-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-ring/20 focus:border-foreground/20 transition-all duration-200 placeholder:text-muted-foreground/30"
                     autoFocus
                   />
-                  <p className="text-xs sm:text-sm text-gray-500 mt-2">
-                    💡 AI will auto-detect type and generate Chinese translations. You can also add notes after " - " separator.
+                  <p className="text-xs text-muted-foreground/60 mt-2">
+                    AI will auto-detect type and generate Chinese translations. Add notes after &quot; - &quot; separator.
                   </p>
                 </div>
 
-                <div className="flex gap-2 sm:gap-3">
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    className="flex-1 h-10 sm:h-11"
+                <div className="flex gap-3">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="flex-1 h-11"
                     onClick={() => setIsFullscreen(false)}
                   >
-                    Close
+                    Cancel
                   </Button>
-                  <Button 
-                    type="submit" 
-                    className="flex-1 h-10 sm:h-11" 
+                  <Button
+                    type="submit"
+                    className="flex-1 h-11"
                     disabled={processingBatch}
                   >
-                    {processingBatch ? 'Processing...' : 'Add Items'}
+                    {processingBatch ? (
+                      <span className="flex items-center gap-2">
+                        <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+                        </svg>
+                        Processing...
+                      </span>
+                    ) : 'Add Items'}
                   </Button>
                 </div>
               </form>

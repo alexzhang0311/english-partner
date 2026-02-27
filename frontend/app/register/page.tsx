@@ -3,8 +3,6 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { authAPI } from '@/lib/api';
 
 export default function RegisterPage() {
@@ -30,14 +28,13 @@ export default function RegisterPage() {
     setLoading(true);
 
     if (!isPasswordValid(formData.password)) {
-      setError('Password format is not correct. Use 8-64 characters with at least one letter and one number.');
+      setError('Password must be 8-64 characters with at least one letter and one number.');
       setLoading(false);
       return;
     }
 
     try {
       await authAPI.register(formData);
-      // Auto-login after registration
       const loginResponse = await authAPI.login({
         username: formData.username,
         password: formData.password,
@@ -52,73 +49,106 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-3 sm:px-4 py-6">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle className="text-xl sm:text-2xl text-center">Create Account</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
+    <div className="min-h-screen bg-premium-hero relative overflow-hidden flex items-center justify-center px-4">
+      {/* Background decoration */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-1/3 -left-32 w-80 h-80 bg-amber-500/5 rounded-full blur-3xl" />
+        <div className="absolute bottom-1/3 -right-32 w-80 h-80 bg-blue-500/5 rounded-full blur-3xl" />
+      </div>
+
+      <div className="relative z-10 w-full max-w-md">
+        {/* Logo */}
+        <div className="flex items-center justify-center gap-3 mb-10">
+          <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+              <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+            </svg>
+          </div>
+          <span className="text-white font-semibold text-xl tracking-tight">English Partner</span>
+        </div>
+
+        {/* Card */}
+        <div className="glass-dark rounded-2xl p-8 sm:p-10">
+          <div className="text-center mb-8">
+            <h1 className="text-2xl font-bold text-white mb-2">Create your account</h1>
+            <p className="text-white/40 text-sm">Start your journey to English fluency</p>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-5">
             {error && (
-              <div className="bg-red-50 text-red-600 p-3 rounded-md text-xs sm:text-sm">
+              <div className="bg-red-500/10 border border-red-500/20 text-red-300 px-4 py-3 rounded-xl text-sm animate-fade-in">
                 {error}
               </div>
             )}
 
-            <div>
-              <label className="block text-xs sm:text-sm font-medium mb-2">Email</label>
-              <Input
+            <div className="space-y-2">
+              <label className="block text-xs font-medium text-white/50 uppercase tracking-wider">Email</label>
+              <input
                 type="email"
                 value={formData.email}
-                onChange={(e) =>
-                  setFormData({ ...formData, email: e.target.value })
-                }
-                className="h-10 text-base"
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-white text-base placeholder:text-white/20 focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/20 transition-all duration-200"
+                placeholder="you@example.com"
                 required
               />
             </div>
 
-            <div>
-              <label className="block text-xs sm:text-sm font-medium mb-2">Username</label>
-              <Input
+            <div className="space-y-2">
+              <label className="block text-xs font-medium text-white/50 uppercase tracking-wider">Username</label>
+              <input
                 type="text"
                 value={formData.username}
-                onChange={(e) =>
-                  setFormData({ ...formData, username: e.target.value })
-                }
-                className="h-10 text-base"
+                onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-white text-base placeholder:text-white/20 focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/20 transition-all duration-200"
+                placeholder="Choose a username"
                 required
               />
             </div>
 
-            <div>
-              <label className="block text-xs sm:text-sm font-medium mb-2">Password</label>
-              <Input
+            <div className="space-y-2">
+              <label className="block text-xs font-medium text-white/50 uppercase tracking-wider">Password</label>
+              <input
                 type="password"
                 value={formData.password}
-                onChange={(e) =>
-                  setFormData({ ...formData, password: e.target.value })
-                }
-                className="h-10 text-base"
+                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-white text-base placeholder:text-white/20 focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/20 transition-all duration-200"
+                placeholder="Min 8 chars, letter + number"
                 required
                 minLength={8}
                 maxLength={64}
               />
+              <p className="text-white/20 text-xs mt-1">8-64 characters with at least one letter and one number</p>
             </div>
 
-            <Button type="submit" className="w-full h-10 sm:h-11 text-base" disabled={loading}>
-              {loading ? 'Creating account...' : 'Sign Up'}
+            <Button
+              type="submit"
+              variant="premium"
+              className="w-full h-12 text-base font-semibold mt-2"
+              disabled={loading}
+            >
+              {loading ? (
+                <span className="flex items-center gap-2">
+                  <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+                  </svg>
+                  Creating account...
+                </span>
+              ) : 'Create Account'}
             </Button>
+          </form>
 
-            <div className="text-center text-xs sm:text-sm">
+          <div className="mt-8 pt-6 border-t border-white/5 text-center">
+            <p className="text-white/30 text-sm">
               Already have an account?{' '}
-              <a href="/login" className="text-primary hover:underline font-medium">
+              <a href="/login" className="text-amber-400/80 hover:text-amber-400 font-medium transition-colors">
                 Sign in
               </a>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
+            </p>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
