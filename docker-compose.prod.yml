@@ -1,4 +1,6 @@
-version: '3.8'
+
+# Use .env.prod for environment variables (production)
+# Run with: docker compose -f docker-compose.prod.yml --env-file .env.prod up -d
 
 services:
   # Backend API
@@ -6,6 +8,9 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+      args:
+        PIP_INDEX_URL: ${PIP_INDEX_URL:-https://pypi.tuna.tsinghua.edu.cn/simple}
+        PIP_TRUSTED_HOST: ${PIP_TRUSTED_HOST:-pypi.tuna.tsinghua.edu.cn}
     container_name: english-partner-backend
     environment:
       # External PostgreSQL database
@@ -29,8 +34,8 @@ services:
       ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-claude-3-5-sonnet-20241022}
     
     ports:
-      # Expose only to localhost - access through nginx reverse proxy
-      - "127.0.0.1:8000:8000"
+      # Expose on all host interfaces (0.0.0.0)
+      - "8000:8000"
     
     networks:
       - app-network
@@ -49,14 +54,16 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
     container_name: english-partner-frontend
     environment:
       # Frontend calls backend through nginx (external server)
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
     
     ports:
-      # Expose only to localhost - access through nginx reverse proxy
-      - "127.0.0.1:3000:3000"
+      # Expose on all host interfaces (0.0.0.0)
+      - "3000:3000"
     
     networks:
       - app-network

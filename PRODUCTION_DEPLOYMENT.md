@@ -70,11 +70,47 @@ Restart PostgreSQL:
 sudo systemctl restart postgresql
 ```
 
-### 1.3 Test Connection from Application Server
+### 1.3 Find PostgreSQL Server IP Address
+
+Before testing connection, you need to know the PostgreSQL server's IP:
+
+**From PostgreSQL Server:**
+```bash
+# SSH into PostgreSQL server
+ssh your_postgres_server
+
+# Find the server's IP
+hostname -I
+# or
+ip addr show | grep "inet " | grep -v 127.0.0.1
+```
+
+Example output: `192.168.1.50`
+
+**From Application Server:**
+```bash
+# If you know hostname
+nslookup postgres.example.com
+ping postgres_hostname
+
+# Or direct test
+nc -zv 192.168.1.50 5432  # Check if port 5432 is open
+```
+
+**Cloud Providers:**
+- **AWS RDS**: RDS Console → DB Instances → Endpoint (e.g., `english-partner-db.c9akciq32.us-east-1.rds.amazonaws.com`)
+- **Google Cloud SQL**: Cloud SQL → Instance Details → Public IP
+- **Azure Database**: Portal → Server Name (e.g., `postgres-server.postgres.database.azure.com`)
+- **DigitalOcean**: Databases → Connection Details
+
+### 1.4 Test Connection from Application Server
 
 ```bash
-# From app server
-psql -h <postgres_server_ip> -U app_user -d english_partner -c "SELECT version();"
+# Using psql (replace with your actual IP)
+psql -h 192.168.1.50 -U app_user -d english_partner -c "SELECT version();"
+
+# If you get an error about missing packages, just test with nc
+nc -zv 192.168.1.50 5432
 ```
 
 ## Step 2: Prepare External Nginx

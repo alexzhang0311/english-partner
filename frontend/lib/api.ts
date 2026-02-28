@@ -1,7 +1,8 @@
 import axios from 'axios';
 
-// API base URL - all API calls will be under /english path
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://yourdomain.com/english';
+// NEXT_PUBLIC_* variables are injected at build time in Next.js.
+// Fallback to relative path so production won't accidentally hit placeholder domain.
+const API_URL = process.env.NEXT_PUBLIC_API_URL || '/english';
 
 export const api = axios.create({
   baseURL: API_URL,
