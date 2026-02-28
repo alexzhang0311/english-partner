@@ -51,8 +51,8 @@ services:
       dockerfile: Dockerfile
     container_name: english-partner-frontend
     environment:
-      # Browser accesses API through nginx at /api
-      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost/api}
+      # Browser accesses API through nginx
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost}
     depends_on:
       - backend
     networks:

@@ -9,7 +9,10 @@ Internet/Browser
         ↓
     Nginx :80/:443
     ├── / → Frontend :3000
-    └── /api → Backend :8000
+    ├── /auth → Backend :8000
+    ├── /items → Backend :8000
+    ├── /reviews → Backend :8000
+    └── /ai → Backend :8000
         └── DB :5432
 ```
 
@@ -39,7 +42,7 @@ docker-compose up -d
 ### 2. Access the Application
 
 - **Application**: http://localhost
-- **API**: http://localhost/api
+- **API**: http://localhost/auth, http://localhost/items, etc.
 - **API Docs**: http://localhost/docs
 - **Health Check**: http://localhost/health
 
@@ -47,11 +50,11 @@ Note: All services now go through port 80 (nginx), not separate ports.
 
 ### 3. Update Frontend API Configuration
 
-The frontend now calls `/api` instead of `http://localhost:8000`:
+The frontend calls backend routes directly (no prefix needed):
 
 ```bash
 # In .env file
-NEXT_PUBLIC_API_URL=http://localhost/api
+NEXT_PUBLIC_API_URL=http://localhost
 ```
 
 This is already configured in `docker-compose.nginx.yml`.
@@ -62,7 +65,7 @@ This is already configured in `docker-compose.nginx.yml`.
 
 The main Nginx configuration located at [nginx.conf](nginx.conf) includes:
 
-- **Reverse Proxy**: Routes `/api` to backend, `/` to frontend
+- **Reverse Proxy**: Routes `/auth`, `/items`, `/reviews`, `/ai` to backend, `/` to frontend
 - **Rate Limiting**: API (10 req/s), General (100 req/s)
 - **Security Headers**: X-Frame-Options, CSP, etc.
 - **Gzip Compression**: For better performance
@@ -72,14 +75,13 @@ The main Nginx configuration located at [nginx.conf](nginx.conf) includes:
 
 #### 1. API Routing
 ```nginx
-location /api {
-    rewrite ^/api/(.*) /$1 break;  # Remove /api prefix
-    proxy_pass http://backend;      # Forward to backend:8000
+location ~ ^/(auth|items|reviews|ai)/ {
+    proxy_pass http://backend;  # Forward to backend:8000
 }
 ```
 
-Browser calls: `http://localhost/api/users/me`  
-Backend receives: `http://backend:8000/users/me`
+Browser calls: `http://localhost/auth/login`  
+Backend receives: `http://backend:8000/auth/login`
 
 #### 2. Frontend Routing
 ```nginx
@@ -358,7 +360,9 @@ Browser → localhost:8000 (Backend API)
 Browser → localhost (Nginx)
    ├── / → Frontend
    └── /api → Backend
-```
+```├── /auth → Backend
+   ├── /items → Backend
+   └── /reviews, /a
 - ✅ Single entry point
 - ✅ Unified SSL/HTTPS
 - ✅ Rate limiting & security
@@ -371,16 +375,15 @@ If you're currently using the direct docker-compose.yml:
 
 ```bash
 # 1. Stop current services
-docker-compose down
-
-# 2. Update .env
-# Change: NEXT_PUBLIC_API_URL=http://localhost:8000
-# To:     NEXT_PUBLIC_API_URL=http://localhost/api
+docker-compose d (no change needed if already using http://localhost:8000)
+# NEXT_PUBLIC_API_URL can be http://localhost:8000 or http://localhost
 
 # 3. Start with nginx
 docker-compose -f docker-compose.nginx.yml up -d --build
 
 # 4. Test
+curl http://localhost/health
+curl http://localhost
 curl http://localhost/health
 curl http://localhost/api/docs
 ```
