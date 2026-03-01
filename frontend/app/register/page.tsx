@@ -49,33 +49,33 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen bg-premium-hero relative overflow-hidden flex items-center justify-center px-4">
+    <div className="min-h-screen-safe bg-premium-hero relative overflow-hidden flex items-center justify-center px-4 sm:px-6 py-8 safe-top safe-bottom">
       {/* Background decoration */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/3 -left-32 w-80 h-80 bg-amber-500/5 rounded-full blur-3xl" />
-        <div className="absolute bottom-1/3 -right-32 w-80 h-80 bg-blue-500/5 rounded-full blur-3xl" />
+        <div className="absolute top-1/3 -left-20 sm:-left-32 w-64 sm:w-80 h-64 sm:h-80 bg-amber-500/5 rounded-full blur-3xl" />
+        <div className="absolute bottom-1/3 -right-20 sm:-right-32 w-64 sm:w-80 h-64 sm:h-80 bg-blue-500/5 rounded-full blur-3xl" />
       </div>
 
-      <div className="relative z-10 w-full max-w-md">
+      <div className="relative z-10 w-full max-w-[420px] md:max-w-md">
         {/* Logo */}
-        <div className="flex items-center justify-center gap-3 mb-10">
-          <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center">
+        <div className="flex items-center justify-center gap-2.5 sm:gap-3 mb-8 sm:mb-10">
+          <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center flex-shrink-0">
             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
               <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
             </svg>
           </div>
-          <span className="text-white font-semibold text-xl tracking-tight">English Partner</span>
+          <span className="text-white font-semibold text-lg sm:text-xl tracking-tight">English Partner</span>
         </div>
 
         {/* Card */}
-        <div className="glass-dark rounded-2xl p-8 sm:p-10">
-          <div className="text-center mb-8">
-            <h1 className="text-2xl font-bold text-white mb-2">Create your account</h1>
+        <div className="glass-dark rounded-2xl p-6 sm:p-8 md:p-10">
+          <div className="text-center mb-6 sm:mb-8">
+            <h1 className="text-xl sm:text-2xl font-bold text-white mb-2">Create your account</h1>
             <p className="text-white/40 text-sm">Start your journey to English fluency</p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5">
             {error && (
               <div className="bg-red-500/10 border border-red-500/20 text-red-300 px-4 py-3 rounded-xl text-sm animate-fade-in">
                 {error}
@@ -91,6 +91,9 @@ export default function RegisterPage() {
                 className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-white text-base placeholder:text-white/20 focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/20 transition-all duration-200"
                 placeholder="you@example.com"
                 required
+                autoComplete="email"
+                autoCapitalize="none"
+                inputMode="email"
               />
             </div>
 
@@ -103,6 +106,9 @@ export default function RegisterPage() {
                 className="w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-white text-base placeholder:text-white/20 focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/20 transition-all duration-200"
                 placeholder="Choose a username"
                 required
+                autoComplete="username"
+                autoCapitalize="none"
+                autoCorrect="off"
               />
             </div>
 
@@ -117,6 +123,7 @@ export default function RegisterPage() {
                 required
                 minLength={8}
                 maxLength={64}
+                autoComplete="new-password"
               />
               <p className="text-white/20 text-xs mt-1">8-64 characters with at least one letter and one number</p>
             </div>
@@ -124,7 +131,7 @@ export default function RegisterPage() {
             <Button
               type="submit"
               variant="premium"
-              className="w-full h-12 text-base font-semibold mt-2"
+              className="w-full h-12 text-base font-semibold mt-2 touch-target"
               disabled={loading}
             >
               {loading ? (
@@ -139,7 +146,7 @@ export default function RegisterPage() {
             </Button>
           </form>
 
-          <div className="mt-8 pt-6 border-t border-white/5 text-center">
+          <div className="mt-6 sm:mt-8 pt-5 sm:pt-6 border-t border-white/5 text-center">
             <p className="text-white/30 text-sm">
               Already have an account?{' '}
               <a href="/login" className="text-amber-400/80 hover:text-amber-400 font-medium transition-colors">

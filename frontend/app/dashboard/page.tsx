@@ -220,25 +220,26 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="min-h-screen bg-premium-surface">
+    <div className="min-h-screen-safe bg-premium-surface">
       {/* Navigation */}
-      <nav className="sticky top-0 z-40 bg-white/80 backdrop-blur-xl border-b border-border/50">
+      <nav className="sticky top-0 z-40 bg-white/80 backdrop-blur-xl border-b border-border/50 safe-top">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex justify-between items-center">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5 sm:gap-3">
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center flex-shrink-0">
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
                 <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
               </svg>
             </div>
-            <h1 className="text-lg font-semibold text-foreground tracking-tight">English Partner</h1>
+            <h1 className="text-base sm:text-lg font-semibold text-foreground tracking-tight hidden xs:block">English Partner</h1>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            {/* Review button - hidden on mobile, shown in bottom bar */}
             <Button
               variant="default"
               size="sm"
               onClick={() => router.push('/review')}
-              className="text-xs"
+              className="text-xs hidden sm:inline-flex h-9"
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1.5">
                 <polyline points="9 11 12 14 22 4"/>
@@ -250,45 +251,51 @@ export default function DashboardPage() {
               variant="ghost"
               size="sm"
               onClick={handleLogout}
-              className="text-xs text-muted-foreground"
+              className="text-xs text-muted-foreground h-9 px-2.5 sm:px-3"
             >
-              Sign Out
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="sm:mr-1.5">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                <polyline points="16 17 21 12 16 7"/>
+                <line x1="21" y1="12" x2="9" y2="12"/>
+              </svg>
+              <span className="hidden sm:inline">Sign Out</span>
             </Button>
           </div>
         </div>
       </nav>
 
       {/* Main Content */}
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 pb-20 sm:pb-8">
-        <div className="grid lg:grid-cols-5 gap-6">
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-5 sm:py-6 md:py-8 pb-24 sm:pb-6 md:pb-8">
+        {/* Grid: single column on mobile, 2-col on tablet, 5-col on desktop */}
+        <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-4 sm:gap-5 md:gap-6">
           {/* Left Column - Add Items */}
-          <div className="lg:col-span-3 space-y-6">
+          <div className="md:col-span-1 lg:col-span-3 space-y-4 sm:space-y-5 md:space-y-6">
             {/* Quick Add Card */}
             <Card className="card-premium">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle className="text-base">Add Learning Items</CardTitle>
-                    <p className="text-xs text-muted-foreground mt-1">AI auto-detects type and generates translations</p>
+              <CardHeader className="px-4 sm:px-6 py-4 sm:py-5">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <CardTitle className="text-sm sm:text-base">Add Learning Items</CardTitle>
+                    <p className="text-[11px] sm:text-xs text-muted-foreground mt-1">AI auto-detects type and generates translations</p>
                   </div>
                   <Button
                     type="button"
                     variant="outline"
                     size="sm"
                     onClick={() => setIsFullscreen(true)}
-                    className="text-xs"
+                    className="text-xs flex-shrink-0 h-8 sm:h-9"
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-1">
                       <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
                     </svg>
-                    Expand
+                    <span className="hidden sm:inline">Expand</span>
                   </Button>
                 </div>
               </CardHeader>
-              <CardContent>
-                <form onSubmit={handleBatchAddItems} className="space-y-4">
+              <CardContent className="px-4 sm:px-6 pb-4 sm:pb-6">
+                <form onSubmit={handleBatchAddItems} className="space-y-3 sm:space-y-4">
                   {batchFeedback && (
-                    <div className={`px-4 py-3 rounded-xl text-sm animate-fade-in ${
+                    <div className={`px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl text-sm animate-fade-in ${
                       batchFeedback.includes('Added') && !batchFeedback.includes('0 items')
                         ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
                         : 'bg-red-50 text-red-600 border border-red-100'
@@ -303,10 +310,10 @@ export default function DashboardPage() {
                     value={batchContent}
                     onChange={(e) => setBatchContent(e.target.value)}
                     placeholder="Enter words, phrases, or sentences — one per line or comma-separated&#10;&#10;hello&#10;good morning&#10;endorsement - 代言"
-                    className="w-full h-40 sm:h-48 bg-muted/30 border border-border/50 rounded-xl px-4 py-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-ring/20 focus:border-foreground/20 transition-all duration-200 placeholder:text-muted-foreground/40"
+                    className="w-full h-32 sm:h-40 md:h-48 bg-muted/30 border border-border/50 rounded-xl px-3 sm:px-4 py-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-ring/20 focus:border-foreground/20 transition-all duration-200 placeholder:text-muted-foreground/40"
                   />
 
-                  <Button type="submit" className="w-full h-11" disabled={processingBatch}>
+                  <Button type="submit" className="w-full h-11 touch-target" disabled={processingBatch}>
                     {processingBatch ? (
                       <span className="flex items-center gap-2">
                         <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -320,16 +327,16 @@ export default function DashboardPage() {
                 </form>
 
                 {/* Manual Add - Collapsible */}
-                <details className="mt-6 group">
-                  <summary className="text-xs font-medium text-muted-foreground cursor-pointer hover:text-foreground transition-colors flex items-center gap-1.5">
+                <details className="mt-5 sm:mt-6 group">
+                  <summary className="text-xs font-medium text-muted-foreground cursor-pointer hover:text-foreground transition-colors flex items-center gap-1.5 py-1 touch-target">
                     <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="transition-transform group-open:rotate-90">
                       <polyline points="9 18 15 12 9 6"/>
                     </svg>
                     Manual Add (Single Item)
                   </summary>
-                  <form onSubmit={handleAddItem} className="space-y-4 mt-4 pt-4 border-t border-border/30">
+                  <form onSubmit={handleAddItem} className="space-y-3 sm:space-y-4 mt-4 pt-4 border-t border-border/30">
                     {error && (
-                      <div className="bg-red-50 text-red-600 border border-red-100 px-4 py-3 rounded-xl text-sm animate-fade-in">
+                      <div className="bg-red-50 text-red-600 border border-red-100 px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl text-sm animate-fade-in">
                         {error}
                       </div>
                     )}
@@ -350,7 +357,7 @@ export default function DashboardPage() {
                         placeholder="Chinese translation or usage example"
                       />
                     </div>
-                    <Button type="submit" variant="outline" className="w-full h-10">
+                    <Button type="submit" variant="outline" className="w-full h-10 touch-target">
                       Add Item
                     </Button>
                   </form>
@@ -360,18 +367,18 @@ export default function DashboardPage() {
           </div>
 
           {/* Right Column - Review & History */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className="md:col-span-1 lg:col-span-2 space-y-4 sm:space-y-5 md:space-y-6">
             {/* Today's Review */}
             <Card className="card-premium">
-              <CardHeader>
+              <CardHeader className="px-4 sm:px-6 py-4 sm:py-5">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-base">Today&apos;s Review</CardTitle>
+                  <CardTitle className="text-sm sm:text-base">Today&apos;s Review</CardTitle>
                   <span className="text-xs font-semibold bg-primary/10 text-primary px-2.5 py-1 rounded-full">
                     {reviewItems.length} items
                   </span>
                 </div>
               </CardHeader>
-              <CardContent>
+              <CardContent className="px-4 sm:px-6 pb-4 sm:pb-6">
                 {loading ? (
                   <div className="flex items-center justify-center py-8">
                     <svg className="animate-spin h-5 w-5 text-muted-foreground" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -380,7 +387,7 @@ export default function DashboardPage() {
                     </svg>
                   </div>
                 ) : reviewItems.length === 0 ? (
-                  <div className="text-center py-8">
+                  <div className="text-center py-6 sm:py-8">
                     <div className="w-12 h-12 rounded-2xl bg-muted/50 flex items-center justify-center mx-auto mb-3">
                       <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-muted-foreground/50">
                         <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
@@ -393,7 +400,7 @@ export default function DashboardPage() {
                 ) : (
                   <div className="space-y-2">
                     {reviewItems.slice(0, 5).map((item: any) => (
-                      <div key={item.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-xl">
+                      <div key={item.id} className="flex items-center justify-between p-2.5 sm:p-3 bg-muted/30 rounded-xl">
                         <div className="min-w-0 flex-1">
                           <p className="font-medium text-sm truncate">{item.content}</p>
                           <p className="text-xs text-muted-foreground capitalize">{item.type}</p>
@@ -405,8 +412,9 @@ export default function DashboardPage() {
                         +{reviewItems.length - 5} more items
                       </p>
                     )}
+                    {/* Desktop review button */}
                     <Button
-                      className="w-full h-11 mt-3"
+                      className="w-full h-11 mt-3 hidden sm:flex touch-target"
                       variant="premium"
                       onClick={() => router.push('/review')}
                     >
@@ -423,10 +431,10 @@ export default function DashboardPage() {
 
             {/* Review History */}
             <Card className="card-premium">
-              <CardHeader>
-                <CardTitle className="text-base">Recent History</CardTitle>
+              <CardHeader className="px-4 sm:px-6 py-4 sm:py-5">
+                <CardTitle className="text-sm sm:text-base">Recent History</CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="px-4 sm:px-6 pb-4 sm:pb-6">
                 {reviewHistory.length === 0 ? (
                   <div className="text-center py-6">
                     <p className="text-sm text-muted-foreground">No review history yet</p>
@@ -443,7 +451,7 @@ export default function DashboardPage() {
                       return (
                         <div key={session.id} className="rounded-xl border border-border/50 overflow-hidden">
                           <div
-                            className="p-3.5 cursor-pointer hover:bg-muted/30 transition-colors"
+                            className="p-3 sm:p-3.5 cursor-pointer hover:bg-muted/30 active:bg-muted/40 transition-colors touch-target"
                             onClick={() => toggleSession(session.id)}
                           >
                             <div className="flex justify-between items-center">
@@ -460,9 +468,9 @@ export default function DashboardPage() {
                                   </p>
                                 </div>
                               </div>
-                              <div className="flex items-center gap-3 flex-shrink-0">
+                              <div className="flex items-center gap-2.5 sm:gap-3 flex-shrink-0">
                                 <div className="text-right">
-                                  <p className={`text-base font-bold ${scoreColor}`}>
+                                  <p className={`text-sm sm:text-base font-bold ${scoreColor}`}>
                                     {session.score?.toFixed(0)}%
                                   </p>
                                   <p className="text-[11px] text-muted-foreground">
@@ -477,11 +485,11 @@ export default function DashboardPage() {
                           </div>
 
                           {isExpanded && (
-                            <div className="px-3.5 pb-3.5 space-y-1.5 animate-fade-in">
+                            <div className="px-3 sm:px-3.5 pb-3 sm:pb-3.5 space-y-1.5 animate-fade-in">
                               {session.items.map((item: any) => (
                                 <div
                                   key={item.id}
-                                  className={`flex items-center gap-2.5 p-2.5 rounded-lg text-sm ${
+                                  className={`flex items-center gap-2 sm:gap-2.5 p-2 sm:p-2.5 rounded-lg text-sm ${
                                     item.result === 'correct'
                                       ? 'bg-emerald-50/80 border border-emerald-100'
                                       : 'bg-red-50/80 border border-red-100'
@@ -527,18 +535,59 @@ export default function DashboardPage() {
         </div>
       </main>
 
+      {/* Mobile Bottom Navigation Bar */}
+      <div className="fixed bottom-0 left-0 right-0 z-40 sm:hidden bg-white/90 backdrop-blur-xl border-t border-border/50 safe-bottom">
+        <div className="flex items-center justify-around px-4 py-2">
+          <button
+            onClick={() => setIsFullscreen(true)}
+            className="flex flex-col items-center gap-0.5 py-1.5 px-3 text-muted-foreground touch-target"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19"/>
+              <line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            <span className="text-[10px] font-medium">Add</span>
+          </button>
+          <button
+            onClick={() => router.push('/review')}
+            className="flex flex-col items-center gap-0.5 py-1.5 px-3 touch-target"
+          >
+            <div className="w-12 h-12 -mt-6 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center shadow-lg shadow-amber-500/30">
+              <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="9 11 12 14 22 4"/>
+                <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+              </svg>
+            </div>
+            <span className="text-[10px] font-medium text-amber-600">Review</span>
+          </button>
+          <button
+            onClick={handleLogout}
+            className="flex flex-col items-center gap-0.5 py-1.5 px-3 text-muted-foreground touch-target"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+              <polyline points="16 17 21 12 16 7"/>
+              <line x1="21" y1="12" x2="9" y2="12"/>
+            </svg>
+            <span className="text-[10px] font-medium">Sign Out</span>
+          </button>
+        </div>
+      </div>
+
       {/* Fullscreen Batch Input Modal */}
       {isFullscreen && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-6 animate-fade-in">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl h-[92vh] sm:h-[85vh] flex flex-col overflow-hidden">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-border/50">
-              <div>
-                <h2 className="text-lg font-semibold">Batch Input</h2>
-                <p className="text-xs text-muted-foreground mt-0.5">Add multiple items at once</p>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center sm:p-6 animate-fade-in">
+          <div className="bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl w-full sm:max-w-2xl md:max-w-4xl h-[90dvh] sm:h-[85vh] flex flex-col overflow-hidden safe-bottom">
+            <div className="flex items-center justify-between px-4 sm:px-6 py-3.5 sm:py-4 border-b border-border/50">
+              {/* Mobile drag indicator */}
+              <div className="absolute top-2 left-1/2 -translate-x-1/2 w-10 h-1 rounded-full bg-muted sm:hidden" />
+              <div className="mt-1 sm:mt-0">
+                <h2 className="text-base sm:text-lg font-semibold">Batch Input</h2>
+                <p className="text-[11px] sm:text-xs text-muted-foreground mt-0.5">Add multiple items at once</p>
               </div>
               <button
                 onClick={() => setIsFullscreen(false)}
-                className="w-8 h-8 rounded-lg hover:bg-muted/50 flex items-center justify-center transition-colors"
+                className="w-9 h-9 rounded-lg hover:bg-muted/50 active:bg-muted/70 flex items-center justify-center transition-colors touch-target"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <line x1="18" y1="6" x2="6" y2="18"/>
@@ -547,10 +596,10 @@ export default function DashboardPage() {
               </button>
             </div>
 
-            <div className="flex-1 p-6 overflow-hidden">
-              <form onSubmit={handleBatchAddItems} className="h-full flex flex-col gap-4">
+            <div className="flex-1 p-4 sm:p-6 overflow-hidden">
+              <form onSubmit={handleBatchAddItems} className="h-full flex flex-col gap-3 sm:gap-4">
                 {batchFeedback && (
-                  <div className={`px-4 py-3 rounded-xl text-sm ${
+                  <div className={`px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl text-sm ${
                     batchFeedback.includes('Added') && !batchFeedback.includes('0 items')
                       ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
                       : 'bg-red-50 text-red-600 border border-red-100'
@@ -561,7 +610,7 @@ export default function DashboardPage() {
                   </div>
                 )}
 
-                <div className="flex-1 flex flex-col">
+                <div className="flex-1 flex flex-col min-h-0">
                   <label className="block text-xs font-medium text-muted-foreground mb-2">
                     Enter words, phrases, or sentences (one per line or comma-separated)
                   </label>
@@ -569,10 +618,10 @@ export default function DashboardPage() {
                     value={batchContent}
                     onChange={(e) => setBatchContent(e.target.value)}
                     placeholder="hello&#10;good morning&#10;how are you&#10;endorsement - 代言&#10;make a difference"
-                    className="flex-1 w-full bg-muted/20 border border-border/50 rounded-xl px-4 py-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-ring/20 focus:border-foreground/20 transition-all duration-200 placeholder:text-muted-foreground/30"
+                    className="flex-1 w-full bg-muted/20 border border-border/50 rounded-xl px-3 sm:px-4 py-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-ring/20 focus:border-foreground/20 transition-all duration-200 placeholder:text-muted-foreground/30"
                     autoFocus
                   />
-                  <p className="text-xs text-muted-foreground/60 mt-2">
+                  <p className="text-[11px] sm:text-xs text-muted-foreground/60 mt-2">
                     AI will auto-detect type and generate Chinese translations. Add notes after &quot; - &quot; separator.
                   </p>
                 </div>
@@ -581,14 +630,14 @@ export default function DashboardPage() {
                   <Button
                     type="button"
                     variant="outline"
-                    className="flex-1 h-11"
+                    className="flex-1 h-11 touch-target"
                     onClick={() => setIsFullscreen(false)}
                   >
                     Cancel
                   </Button>
                   <Button
                     type="submit"
-                    className="flex-1 h-11"
+                    className="flex-1 h-11 touch-target"
                     disabled={processingBatch}
                   >
                     {processingBatch ? (
