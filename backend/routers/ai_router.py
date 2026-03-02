@@ -6,10 +6,13 @@ from models import User, Mistake
 from dependencies import get_current_user
 from ai.factory import AIProviderFactory
 from ai.base import Correction
+from config import settings
 import os
 import tempfile
+import logging
 
 router = APIRouter(prefix="/ai", tags=["AI corrections"])
+logger = logging.getLogger(__name__)
 
 
 @router.post("/correct-text", response_model=TextCorrectionResponse)
@@ -123,12 +126,14 @@ async def translate_text(
     current_user: User = Depends(get_current_user)
 ):
     """Translate text and provide explanation using AI"""
-    ai_provider = AIProviderFactory.get()
-    
     try:
         from openai import AsyncOpenAI
         from anthropic import AsyncAnthropic
-        from config import settings
+
+        if settings.AI_PROVIDER == "openai" and not settings.OPENAI_API_KEY:
+            raise ValueError("OPENAI_API_KEY is empty")
+        if settings.AI_PROVIDER == "anthropic" and not settings.ANTHROPIC_API_KEY:
+            raise ValueError("ANTHROPIC_API_KEY is empty")
         
         # Direct API call for better translation control
         if settings.AI_PROVIDER == "openai":
@@ -164,9 +169,21 @@ async def translate_text(
             explanation=explanation
         )
     except Exception as e:
+        logger.exception(
+            "Translation failed | user_id=%s provider=%s source_lang=%s target_lang=%s text_len=%s",
+            current_user.id,
+            settings.AI_PROVIDER,
+            request.source_lang,
+            request.target_lang,
+            len(request.text or "")
+        )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Translation failed: {str(e)}"
+            detail={
+                "message": "Translation failed",
+                "error_type": type(e).__name__,
+                "error": str(e)
+            }
         )
 
 
